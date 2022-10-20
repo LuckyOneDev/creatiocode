@@ -11,6 +11,7 @@ export class File implements vscode.FileStat {
     name: string;
 
     data?: Uint8Array;
+    permissions?: vscode.FilePermission;
 
     constructor(name: string, ctime: number = Date.now(), mtime: number = Date.now(), size: number = 0) {
         this.type = vscode.FileType.File;
@@ -30,6 +31,8 @@ export class Directory implements vscode.FileStat {
 
     name: string;
     entries: Map<string, File | Directory>;
+
+    permissions?: vscode.FilePermission;
 
     constructor(name: string) {
         this.type = vscode.FileType.Directory;
@@ -83,18 +86,22 @@ export class CreatioFS implements vscode.FileSystemProvider {
         return result;
     }
 
-    // --- manage file contents
-    getMetainfo(uri: vscode.Uri): SchemaMetaInfo {
-        const data = this._lookupAsFile(uri, false).data;
+    getMetainfoFromFile(data: Uint8Array | undefined): SchemaMetaInfo {
         if (data) {
             return JSON.parse(data.toString());
         }
         throw vscode.FileSystemError.FileNotFound();
     }
+
+    getFileMetainfo(uri: vscode.Uri): SchemaMetaInfo {
+        const data = this._lookupAsFile(uri, false).data;
+        return this.getMetainfoFromFile(data);
+    }
+    
     readFile(uri: vscode.Uri): Uint8Array | Thenable<Uint8Array> {
-        const metaInf = this.getMetainfo(uri);
+        const metaInf = this.getFileMetainfo(uri);
         if (metaInf && this.client) {
-            return this.client.getSchemaBuffer(metaInf.uId);
+            return this.client.getSchemaBuffer(metaInf.uId, metaInf.type);
         }
         throw vscode.FileSystemError.FileNotFound();
     }
@@ -120,7 +127,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
         entry.mtime = Date.now();
         entry.size = content.byteLength;
         entry.data = content;
-
+        entry.permissions = this.getMetainfoFromFile(content).isReadOnly ? vscode.FilePermission.Readonly : undefined;
         this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
     }
 
@@ -168,7 +175,6 @@ export class CreatioFS implements vscode.FileSystemProvider {
 
         const entry = new Directory(basename);
         parent.entries.set(entry.name, entry);
-        parent.mtime = Date.now();
         parent.size += 1;
         this._fireSoon({ type: vscode.FileChangeType.Changed, uri: dirname }, { type: vscode.FileChangeType.Created, uri });
     }

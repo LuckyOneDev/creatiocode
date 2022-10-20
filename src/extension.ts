@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
-import { CreatioClient } from './creatio';
+import { CreatioClient, PackageMetaInfo, SchemaMetaInfo } from './creatio';
 import { CreatioFS } from './fileSystemProvider';
 
 async function openUri(fileName: string) {
@@ -45,30 +45,41 @@ async function getInput() {
 	};
 }
 
+function formFilePath(element: SchemaMetaInfo, packages: PackageMetaInfo[]): vscode.Uri {
+	let folder = packages.find(x => x.uId === element.packageUId);
+	if (folder) {
+		return vscode.Uri.parse(`creatio:/${folder.name}/${element.getFile()}`);
+	} else {
+		return vscode.Uri.parse(`creatio:/${element.getFile()}`);
+	}
+	
+}
+
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.createCreatioWorkspace', async function () {
 		let input = await getInput();
 		vscode.workspace.updateWorkspaceFolders(0, 0, { uri: vscode.Uri.parse('creatio:/'), name: input.url });
-		context.workspaceState.update("creditentials", input);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.reloadCreatioWorkspace', async function () {
 		let fs = CreatioFS.getInstance();
-		if (context.workspaceState.get("creditentials") !== undefined) {
-			fs.client = new CreatioClient(context.workspaceState.get("creditentials"));
-			let connected = await fs!.client.connect();
-			if (connected) {
-				vscode.window.showInformationMessage("Loading files...");
+		fs.client = new CreatioClient(context.workspaceState.get("creditentials"));
+		let connected = await fs!.client.connect();
+		if (connected) {
+			vscode.window.showInformationMessage("Loading files...");
 
-				let workspaceItems = await fs.client.getWorkspaceItems();
+			let workspaceItems = await fs.client.getWorkspaceItems();
+			let packages = await fs.client.getPackages();
 
-				workspaceItems.forEach(element => {
-					fs.writeFile(vscode.Uri.parse(`creatio:/${element.getFile()}`), Buffer.from(JSON.stringify(element)), { create: true, overwrite: true });
-				});
-				vscode.window.showInformationMessage("Files loaded...");
-			}
-		} else {
-			vscode.window.showErrorMessage("Creatio workspace not found");
+			packages.forEach(element => {
+				fs.createDirectory(vscode.Uri.parse(`creatio:/${element.name}`));
+			});
+
+			workspaceItems.forEach(element => {
+				fs.writeFile(formFilePath(element, packages), Buffer.from(JSON.stringify(element)), { create: true, overwrite: true });
+			});
+
+			vscode.window.showInformationMessage("Files loaded...");
 		}
 	}));
 

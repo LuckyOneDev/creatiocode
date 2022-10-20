@@ -12,7 +12,8 @@
   "activationEvents": [
     "onFileSystem:creatio",
     "onCommand:creatiocode.createCreatioWorkspace",
-    "onCommand:creatiocode.reloadCreatioWorkspace"
+    "onCommand:creatiocode.reloadCreatioWorkspace",
+    "onView:nodeDependencies"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -25,7 +26,15 @@
         "command": "creatiocode.reloadCreatioWorkspace",
         "title": "Reload Creatio workspace"
       }
-    ]
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "creatioView",
+          "name": "Creatio Filesystem"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

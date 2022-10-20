@@ -2,10 +2,43 @@
 import * as vscode from 'vscode';
 import * as http from 'http';
 
+export enum SchemaType {
+	SqlScript = 0,
+	Data = 1,
+	Dll = 2,
+	Entity = 3,
+	ClientUnit = 4,
+	SourceCode = 5,
+	Process = 6,
+	Case = 7,
+	ProcessUserTask = 8,
+	Null = -1,
+}
+
+export class PackageMetaInfo {
+	constructor(data: Partial<SchemaMetaInfo>) {
+		Object.assign(this, data);
+	}
+	
+	createdBy: string = "";
+	createdOn: string = "";
+	description: string = "";
+	id: string = "";
+	isReadOnly: boolean = true;
+	maintainer: string = "";
+	modifiedBy: string = "";
+	modifiedOn: string = "";
+	name: string = "";
+	position: number = 0;
+	type: number = 0;
+	uId: string = "";
+	version: string = "";
+}
+
 export class SchemaMetaInfo {
 	constructor(data: Partial<SchemaMetaInfo>) {
-        Object.assign(this, data);
-    }
+		Object.assign(this, data);
+	}
 
 	id: string = "";
 	uId: string = "";
@@ -18,16 +51,28 @@ export class SchemaMetaInfo {
 	packageRepository: any;
 	packageUId: string = "";
 	title: string = "";
-	type: number = 4;
-	
+	type: SchemaType = SchemaType.Null;
+
 	getFile(): string {
 		switch (this.type) {
-            case 4:
-                return this.name + ".js";
-            default:
-                return this.name;
-                break;
-        } 
+			case SchemaType.ClientUnit:
+				return this.name + ".js";
+			case SchemaType.SourceCode:
+			case SchemaType.ProcessUserTask:
+				return this.name + ".cs";
+			case SchemaType.SqlScript:
+				return this.name + ".sql";
+			case SchemaType.Entity:
+				return this.name + ".ent.json";
+			case SchemaType.Data:
+				return this.name + ".data.json";
+			case SchemaType.Process:
+				return this.name + ".bp";
+			case SchemaType.Case:
+				return this.name + ".case";
+			default:
+				return this.name;
+		}
 	}
 }
 
@@ -39,14 +84,6 @@ export class ClientPostResponse {
 		this.response = response;
 	}
 }
-
-//Used in some functions. Usage undetetmined
-const SchemaType =
-{
-	OBJECT: 0,
-	GREEN: 'green',
-	BLUE: 'blue'
-};
 
 export class CreatioClient {
 	cookies: any;
@@ -94,7 +131,7 @@ export class CreatioClient {
 	}
 
 	getBPMCSRF() {
-		return this.cookies.find( (x: any) => x.startsWith('BPMCSRF')).split(';')[0].split('=')[1];
+		return this.cookies.find((x: any) => x.startsWith('BPMCSRF')).split(';')[0].split('=')[1];
 	}
 
 	sendClientPost(path: string, postData: any = null, contentType = 'application/json'): Promise<any> {
@@ -182,15 +219,11 @@ export class CreatioClient {
 		}
 	}
 
-	async getPackages() {
-		try {
-			return await this.sendClientPost('/0/ServiceModel/PackageService.svc/GetPackages');
-		} catch (err: any) {
-			vscode.window.showErrorMessage(err.message);
-			return err;
-		}
+	async getPackages(): Promise<Array<PackageMetaInfo>> {
+		let response = await this.trySendClientPost('/0/ServiceModel/PackageService.svc/GetPackages');
+		return response ? response.body.packages.map((x: any) => { return new PackageMetaInfo(x); }) : [];
 	}
-	
+
 	isJSON(text: string): any {
 		try {
 			JSON.parse(text);
@@ -200,18 +233,18 @@ export class CreatioClient {
 		return true;
 	}
 
-	async trySendClientPost(path: string, postData: any = null): Promise<ClientPostResponse | null>  {
+	async trySendClientPost(path: string, postData: any = null): Promise<ClientPostResponse | null> {
 		try {
 			let response = await this.sendClientPost(path, postData);
 
 			if (response.response.statusCode !== 200) {
 				throw new Error("Bad request: " + response.response.statusCode);
-			} 
+			}
 			if (!this.isJSON(response.body)) {
 				throw new Error("Invalid JSON string: \n" + response.body);
 			}
 			response.body = JSON.parse(response.body);
-			if(!response.body.success) {
+			if (!response.body.success) {
 				throw new Error("Bad response: " + response.body.errorInfo.errorCode);
 			}
 			return response;
@@ -224,18 +257,46 @@ export class CreatioClient {
 
 	async getWorkspaceItems(): Promise<Array<SchemaMetaInfo>> {
 		let response = await this.trySendClientPost('/0/ServiceModel/WorkspaceExplorerService.svc/GetWorkspaceItems');
-		return response ? response.body.items.map((x: any) => { return new SchemaMetaInfo(x) }) : [];
+		return response ? response.body.items.map((x: any) => { return new SchemaMetaInfo(x); }) : [];
 	}
 
-	async getSchemaBuffer(schemaUId: string): Promise<Uint8Array> {
-		return Buffer.from(await this.getSchema(schemaUId));
+	async getSchemaBuffer(schemaUId: string, type: SchemaType): Promise<Uint8Array> {
+		return Buffer.from(await this.getSchema(schemaUId, type));
 	}
-	
-	async getSchema(schemaUId: string): Promise<string> {
-        const payload = {
-            "schemaUId": schemaUId
-        };
-		let response = await this.trySendClientPost('/0/ServiceModel/ClientUnitSchemaDesignerService.svc/GetSchema', payload);
+
+
+	async getSchema(schemaUId: string, type: SchemaType): Promise<string> {
+		const payload = {
+			"schemaUId": schemaUId
+		};
+
+		let response: any;
+		let svcPath = "";
+
+		switch (type) {
+			case SchemaType.ClientUnit:
+				svcPath = '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/GetSchema';
+				break;
+			case SchemaType.SourceCode:
+				svcPath = '/0/ServiceModel/SourceCodeSchemaDesignerService.svc/GetSchema';
+				break;
+			case SchemaType.SqlScript:
+				svcPath = '/0/ServiceModel/SqlScriptSchemaDesignerService.svc/GetSchema';
+				break;
+			case SchemaType.ProcessUserTask:
+				svcPath = '/0/ServiceModel/ProcessUserTaskSchemaDesignerService.svc/GetSchema';
+				break;
+			case SchemaType.Entity:
+				svcPath = '/0/ServiceModel/EntitySchemaDesignerService.svc/GetSchema';
+				response = await this.trySendClientPost(svcPath, payload);
+				return response ? JSON.stringify(response.body.schema, null, 2) : `Error loading document with uId = ${schemaUId}. Try reloading workplace.`;
+			case SchemaType.Data:
+				svcPath = '/0/ServiceModel/SchemaDataDesignerService.svc/GetSchema';
+				response = await this.trySendClientPost(svcPath, payload);
+				return response ? JSON.stringify(response.body.schema, null, 2) : `Error loading document with uId = ${schemaUId}. Try reloading workplace.`;
+		}
+
+		response = await this.trySendClientPost(svcPath, payload);
 		return response ? response.body.schema.body : `Error loading document with uId = ${schemaUId}. Try reloading workplace.`;
 	}
 
