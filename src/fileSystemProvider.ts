@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { CreatioClient, SchemaMetaInfo } from './creatio';
+import { CreatioClient, SchemaMetaInfo } from './creatio-api';
 
 export class File implements vscode.FileStat {
 

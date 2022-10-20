@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
-import { CreatioClient, PackageMetaInfo, SchemaMetaInfo } from './creatio';
+import { CreatioClient, PackageMetaInfo, SchemaMetaInfo } from './creatio-api';
 import { CreatioFS } from './fileSystemProvider';
+import { TestView } from './viewProvider';
 
 async function openUri(fileName: string) {
 	let uri = vscode.Uri.parse('creatiocode:' + fileName);
@@ -52,10 +53,10 @@ function formFilePath(element: SchemaMetaInfo, packages: PackageMetaInfo[]): vsc
 	} else {
 		return vscode.Uri.parse(`creatio:/${element.getFile()}`);
 	}
-	
+
 }
 
-export function activate(context: vscode.ExtensionContext) {
+function registerFileSystem(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.createCreatioWorkspace', async function () {
 		let input = await getInput();
 		vscode.workspace.updateWorkspaceFolders(0, 0, { uri: vscode.Uri.parse('creatio:/'), name: input.url });
@@ -88,6 +89,12 @@ export function activate(context: vscode.ExtensionContext) {
 		CreatioFS.getInstance(),
 		{ isCaseSensitive: true }
 	));
+}
+
+export function activate(context: vscode.ExtensionContext) {
+	registerFileSystem(context);
+
+	new TestView(context);
 }
 
 // This method is called when your extension is deactivated

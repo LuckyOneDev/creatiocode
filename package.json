@@ -13,7 +13,7 @@
     "onFileSystem:creatio",
     "onCommand:creatiocode.createCreatioWorkspace",
     "onCommand:creatiocode.reloadCreatioWorkspace",
-    "onView:nodeDependencies"
+    "onView:creatioView"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -25,13 +25,34 @@
       {
         "command": "creatiocode.reloadCreatioWorkspace",
         "title": "Reload Creatio workspace"
+      },
+      {
+        "command": "creatioView.refreshEntry",
+        "title": "Refresh",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
       }
     ],
-    "views": {
-      "explorer": [
+    "viewsContainers": {
+      "activitybar": [
         {
-          "id": "creatioView",
-          "name": "Creatio Filesystem"
+          "id": "package-explorer",
+          "title": "Package Explorer",
+          "icon": "media/dep.svg"
+        }
+      ]
+    },
+    "views": {
+      "package-explorer": [
+        {
+          "id": "package-dependencies",
+          "name": "Dependencies"
+        },
+        {
+          "id": "package-outline",
+          "name": "Outline"
         }
       ]
     }
