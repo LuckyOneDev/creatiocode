@@ -87,8 +87,10 @@ export class ClientPostResponse {
 
 export class CreatioClient {
 	cookies: any;
-	userAgent: string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36";
 	credentials: any;
+	
+	userAgent: string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36";
+	connected: boolean = false;
 
 	constructor(credentials: any) {
 		this.credentials = credentials;
@@ -198,6 +200,7 @@ export class CreatioClient {
 		} else {
 			vscode.window.showErrorMessage('Invalid login or password');
 		}
+		this.connected = flag;
 		return flag;
 	}
 

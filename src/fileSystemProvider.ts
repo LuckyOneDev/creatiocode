@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { CreatioClient, SchemaMetaInfo } from './creatio-api';
+import { CreatioClient, PackageMetaInfo, SchemaMetaInfo } from './creatio-api';
 
 export class File implements vscode.FileStat {
 
@@ -49,6 +49,8 @@ export type Entry = File | Directory;
 export class CreatioFS implements vscode.FileSystemProvider {
     private static instance: CreatioFS;
 
+    packages: PackageMetaInfo[] = [];
+    schemas: SchemaMetaInfo[]  = [];
     /**
      * The Singleton's constructor should always be private to prevent direct
      * construction calls with the `new` operator.
@@ -97,13 +99,51 @@ export class CreatioFS implements vscode.FileSystemProvider {
         const data = this._lookupAsFile(uri, false).data;
         return this.getMetainfoFromFile(data);
     }
-    
+
     readFile(uri: vscode.Uri): Uint8Array | Thenable<Uint8Array> {
         const metaInf = this.getFileMetainfo(uri);
         if (metaInf && this.client) {
             return this.client.getSchemaBuffer(metaInf.uId, metaInf.type);
         }
         throw vscode.FileSystemError.FileNotFound();
+    }
+
+    formFilePath(element: SchemaMetaInfo): vscode.Uri {
+        let folder = this.packages.find(x => x.uId === element.packageUId);
+        if (folder) {
+            return vscode.Uri.parse(`creatio:/${folder.name}/${element.getFile()}`);
+        } else {
+            return vscode.Uri.parse(`creatio:/${element.getFile()}`);
+        }
+    }
+
+    async initFileSystem() {
+        if (this.client && this.client.connected) {
+            vscode.window.showInformationMessage("Loading files...");
+
+            this.packages = await this.client.getPackages();
+            if (this.packages.length === 0) {
+                vscode.window.showErrorMessage("Something went wrong. No packages found");
+                return;
+            }
+            this.schemas = await this.client.getWorkspaceItems();
+            if (this.schemas.length === 0) {
+                vscode.window.showErrorMessage("Something went wrong. No schemas found");
+                return;
+            }
+
+            this.packages.forEach(element => {
+                this.createDirectory(vscode.Uri.parse(`creatio:/${element.name}`));
+            });
+
+            vscode.window.showInformationMessage("Files loaded...");
+
+            this.schemas.forEach(element => {
+                this.writeFile(this.formFilePath(element), Buffer.from(JSON.stringify(element)), { create: true, overwrite: true });
+            });
+        } else {
+            vscode.window.showErrorMessage("Client is not connected. Reconnect?");
+        }
     }
 
     writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): void {
@@ -178,8 +218,6 @@ export class CreatioFS implements vscode.FileSystemProvider {
         parent.size += 1;
         this._fireSoon({ type: vscode.FileChangeType.Changed, uri: dirname }, { type: vscode.FileChangeType.Created, uri });
     }
-
-    // --- lookup
 
     private _lookup(uri: vscode.Uri, silent: false): Entry;
     private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined;
