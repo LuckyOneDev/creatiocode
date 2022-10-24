@@ -2,6 +2,7 @@
 import * as vscode from 'vscode';
 import { CreatioClient, PackageMetaInfo, SchemaMetaInfo } from './creatio-api';
 import { CreatioFS } from './fileSystemProvider';
+import { CreatioExplorer } from './viewProvider';
 
 async function openUri(fileName: string) {
 	let uri = vscode.Uri.parse('creatiocode:' + fileName);
@@ -66,6 +67,8 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 		CreatioFS.getInstance(),
 		{ isCaseSensitive: true }
 	));
+
+	// context.subscriptions.push(vscode.window.registerTreeDataProvider('nodeDependencies', new CreatioExplorer()));
 }
 
 export function activate(context: vscode.ExtensionContext) {

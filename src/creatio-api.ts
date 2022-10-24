@@ -52,28 +52,6 @@ export class SchemaMetaInfo {
 	packageUId: string = "";
 	title: string = "";
 	type: SchemaType = SchemaType.Null;
-
-	getFile(): string {
-		switch (this.type) {
-			case SchemaType.ClientUnit:
-				return this.name + ".js";
-			case SchemaType.SourceCode:
-			case SchemaType.ProcessUserTask:
-				return this.name + ".cs";
-			case SchemaType.SqlScript:
-				return this.name + ".sql";
-			case SchemaType.Entity:
-				return this.name + ".ent.json";
-			case SchemaType.Data:
-				return this.name + ".data.json";
-			case SchemaType.Process:
-				return this.name + ".bp";
-			case SchemaType.Case:
-				return this.name + ".case";
-			default:
-				return this.name;
-		}
-	}
 }
 
 export class ClientPostResponse {
