@@ -14,8 +14,8 @@ See inheritance trees
 
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+* `creatiocode.fileTypes.ClientUnit.Extension`: File extension for Client Units
+* `creatiocode.fileTypes.ClientUnit.Enabled`: Whether to show client code (js) in file explorer
 
 ## Known Issues
 
