@@ -2,41 +2,23 @@
 import * as vscode from 'vscode';
 import { CreatioClient, PackageMetaInfo, SchemaMetaInfo } from './creatio-api';
 import { CreatioFS } from './fileSystemProvider';
+import { NodeDependenciesProvider } from './nodeDepProv';
 import { CreatioExplorer } from './viewProvider';
 
-async function openUri(fileName: string) {
-	let uri = vscode.Uri.parse('creatiocode:' + fileName);
-	let doc = await vscode.workspace.openTextDocument(uri); // calls back into the provider
-	await vscode.window.showTextDocument(doc, { preview: false });
-}
-
-function registerTextProvider(context: vscode.ExtensionContext) {
-	const myScheme = 'creatiocode';
-	const myProvider = new class implements vscode.TextDocumentContentProvider {
-		onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
-		onDidChange = this.onDidChangeEmitter.event;
-
-		provideTextDocumentContent(uri: vscode.Uri): string {
-			return uri.path;
-		}
-	};
-	context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(myScheme, myProvider));
-}
-
-async function getInput() {
+async function getInput(oldInput: any) {
 	const url = await vscode.window.showInputBox({
 		title: 'Creatio url',
-		value: "safilo-dev2.maticson-lab.ru"
+		value: oldInput.url || "safilo-dev2.maticson-lab.ru"
 	});
 
 	const login = await vscode.window.showInputBox({
 		title: 'Creatio login',
-		value: "Supervisor"
+		value: oldInput.login || "Supervisor"
 	});
 
 	const password = await vscode.window.showInputBox({
 		title: 'Creatio password',
-		value: "Supervisor"
+		value: oldInput.password || "Supervisor"
 	});
 
 	return {
@@ -46,12 +28,12 @@ async function getInput() {
 	};
 }
 
-
-
 function registerFileSystem(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.createCreatioWorkspace', async function () {
-		let input = await getInput();
+		let input: any;
+		input = await getInput(context.workspaceState.get('login-data'));
 		vscode.workspace.updateWorkspaceFolders(0, 0, { uri: vscode.Uri.parse('creatio:/'), name: input.url });
+		context.workspaceState.update('login-data', input);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.reloadCreatioWorkspace', async function () {
@@ -59,7 +41,6 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 		fs.client = new CreatioClient(context.workspaceState.get("creditentials"));
 		await fs.client.connect();
 		await fs.initFileSystem();
-		//
 	}));
 
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
@@ -67,12 +48,40 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 		CreatioFS.getInstance(),
 		{ isCaseSensitive: true }
 	));
+}
 
-	// context.subscriptions.push(vscode.window.registerTreeDataProvider('nodeDependencies', new CreatioExplorer()));
+function registerContextMenus(context: vscode.ExtensionContext) {
+	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.cacheFolder', function (folder: vscode.Uri) {
+		let fs = CreatioFS.getInstance();
+		fs.cacheFolder(folder);
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.revertSchema', async function (file: vscode.Uri) {
+		let fs = CreatioFS.getInstance();
+		await fs.revertSchema(file);
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.clearCache', async function () {
+		let fs = CreatioFS.getInstance();
+		await fs.clearCache();
+	}));
 }
 
 export function activate(context: vscode.ExtensionContext) {
 	registerFileSystem(context);
+	registerContextMenus(context);
+
+	const rootPath =
+		vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0
+			? vscode.workspace.workspaceFolders[0].uri.fsPath
+			: undefined;
+
+	if (rootPath) {
+		vscode.window.registerTreeDataProvider(
+			'nodeDependencies',
+			new NodeDependenciesProvider(rootPath)
+		);
+	}
 }
 
 // This method is called when your extension is deactivated

@@ -10,10 +10,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onFileSystem:creatio",
-    "onCommand:creatiocode.createCreatioWorkspace",
-    "onCommand:creatiocode.reloadCreatioWorkspace",
-    "onView:creatioView"
+    "*"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -33,28 +30,132 @@
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
         }
+      },
+      {
+        "command": "creatiocode.cacheFolder",
+        "title": "Cache package"
+      },
+      {
+        "command": "creatiocode.clearCache",
+        "title": "Clear Creatio cache"
+      },
+      {
+        "command": "creatiocode.revertSchema",
+        "title": "Pull schema from SVN"
       }
     ],
-    "viewsContainers": {
-      "activitybar": [
+    "menus": {
+      "explorer/context": [
         {
-          "id": "package-explorer",
-          "title": "Package Explorer",
-          "icon": "media/dep.svg"
+          "when": "resource =~ /creatio/ && explorerResourceIsFolder",
+          "command": "creatiocode.cacheFolder",
+          "group": "navigation"
+        },
+        {
+          "when": "resource =~ /creatio/ && !explorerResourceReadonly && !explorerResourceIsFolder",
+          "command": "creatiocode.revertSchema",
+          "group": "navigation"
         }
       ]
     },
     "views": {
-      "package-explorer": [
+      "explorer": [
         {
-          "id": "package-dependencies",
-          "name": "Dependencies"
-        },
-        {
-          "id": "package-outline",
-          "name": "Outline"
+          "id": "creatioFileInfo",
+          "name": "Creatio: File Info"
         }
       ]
+    },
+    "configuration": {
+      "title": "Creatio Code",
+      "properties": {
+        "creatiocode.fileTypes.ClientUnit.Extension": {
+          "type": "string",
+          "default": ".js",
+          "description": "File extension for Client Units."
+        },
+        "creatiocode.fileTypes.SourceCode.Extension": {
+          "type": "string",
+          "default": ".cs",
+          "description": "File extension for Source Code."
+        },
+        "creatiocode.fileTypes.ProcessUserTask.Extension": {
+          "type": "string",
+          "default": ".cs",
+          "description": "File extension for Process User Task."
+        },
+        "creatiocode.fileTypes.SqlScript.Extension": {
+          "type": "string",
+          "default": ".sql",
+          "description": "File extension for SqlScript."
+        },
+        "creatiocode.fileTypes.Entity.Extension": {
+          "type": "string",
+          "default": ".ent.json",
+          "description": "File extension for Entity schemas."
+        },
+        "creatiocode.fileTypes.Data.Extension": {
+          "type": "string",
+          "default": ".data.json",
+          "description": "File extension for Binded Data."
+        },
+        "creatiocode.fileTypes.Process.Extension": {
+          "type": "string",
+          "default": ".bp",
+          "description": "File extension for Processes."
+        },
+        "creatiocode.fileTypes.Case.Extension": {
+          "type": "string",
+          "default": ".case",
+          "description": "File extension for Cases."
+        },
+        "creatiocode.fileTypes.ClientUnit.Enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to show client code (js) in file explorer."
+        },
+        "creatiocode.fileTypes.SourceCode.Enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to show source code (c#) in file explorer."
+        },
+        "creatiocode.fileTypes.SqlScript.Enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "File extension for Cases."
+        },
+        "creatiocode.fileTypes.ProcessUserTask.Enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to show ProcessUserTask in file explorer."
+        },
+        "creatiocode.fileTypes.Entity.Enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "File extension for Cases."
+        },
+        "creatiocode.fileTypes.Data.Enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to show binded data in file explorer."
+        },
+        "creatiocode.fileTypes.Process.Enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to show processes in file explorer."
+        },
+        "creatiocode.fileTypes.Case.Enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to show cases in file explorer."
+        },
+        "fileExtensions.Dll.Enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to show dlls in file explorer."
+        }
+        
+      }
     }
   },
   "scripts": {

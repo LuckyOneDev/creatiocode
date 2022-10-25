@@ -12,14 +12,10 @@ export enum SchemaType {
 	Process = 6,
 	Case = 7,
 	ProcessUserTask = 8,
-	Null = -1,
+	Unknown = -1,
 }
 
 export class PackageMetaInfo {
-	constructor(data: Partial<SchemaMetaInfo>) {
-		Object.assign(this, data);
-	}
-	
 	createdBy: string = "";
 	createdOn: string = "";
 	description: string = "";
@@ -33,6 +29,54 @@ export class PackageMetaInfo {
 	type: number = 0;
 	uId: string = "";
 	version: string = "";
+}
+
+interface CreatioResponse {
+	errorInfo: null | any;
+	success: boolean;
+}
+
+interface GetPackagesResponse extends CreatioResponse{
+	packages: Array<SchemaMetaInfo>;
+}
+
+interface GetWorkspaceItemsResponse extends CreatioResponse{
+	items: Array<SchemaMetaInfo>;
+}
+
+interface GetSchemaResponse extends CreatioResponse {
+	schema: Schema;
+}
+
+interface SaveSchemaResponse extends CreatioResponse{
+	buildResult: Number;
+	errorInfo: null | any;
+	errors: null | any;
+	message: null | string;
+	schemaUid: string;
+	success: boolean;
+}
+
+export interface Schema {
+	uId: string;
+	isReadOnly: boolean;
+	caption: Array<{ cultureName: string; value: string }>;
+	description: Array<any>;
+	localizableStrings: Array<{uId: string, name: string, parentSchemaUId: string}>;
+	parameters: Array<any>;
+	_markerCommentsTemplate: string;
+	messages: Array<any>;
+	images: Array<{uId: string, name: string, parentSchemaUId: string, isChanged: boolean}>;
+	name: string;
+	body: string;
+	dependencies: any;
+	id: string;
+	package: undefined | PackageMetaInfo;
+	extendParent: boolean;
+	group: string;
+	less: string;
+	schemaType: SchemaType;
+	parent: undefined | {uId: string, name: string};
 }
 
 export class SchemaMetaInfo {
@@ -51,11 +95,11 @@ export class SchemaMetaInfo {
 	packageRepository: any;
 	packageUId: string = "";
 	title: string = "";
-	type: SchemaType = SchemaType.Null;
+	type: SchemaType = SchemaType.Unknown;
 }
 
-export class ClientPostResponse {
-	body: any;
+export class ClientPostResponse<ResponseType extends CreatioResponse> {
+	body: ResponseType;
 	response: http.IncomingMessage;
 	constructor(body: any, response: http.IncomingMessage) {
 		this.body = body;
@@ -161,11 +205,7 @@ export class CreatioClient {
 		});
 	}
 
-	/**
-	 * 
-	 * @returns {Promise<boolean>}
-	 */
-	async connect() {
+	async connect(): Promise<boolean> {
 		const postData = {
 			"UserName": this.credentials.login,
 			"UserPassword": this.credentials.password
@@ -201,8 +241,8 @@ export class CreatioClient {
 	}
 
 	async getPackages(): Promise<Array<PackageMetaInfo>> {
-		let response = await this.trySendClientPost('/0/ServiceModel/PackageService.svc/GetPackages');
-		return response ? response.body.packages.map((x: any) => { return new PackageMetaInfo(x); }) : [];
+		let response = await this.trySendClientPost<GetPackagesResponse>('/0/ServiceModel/PackageService.svc/GetPackages');
+		return response ? response.body.packages.map((x: any) => { return x; }) : [];
 	}
 
 	isJSON(text: string): any {
@@ -213,8 +253,8 @@ export class CreatioClient {
 		}
 		return true;
 	}
-
-	async trySendClientPost(path: string, postData: any = null): Promise<ClientPostResponse | null> {
+	
+	async trySendClientPost<ResponseType extends CreatioResponse>(path: string, postData: any = null): Promise<ClientPostResponse<ResponseType> | null> {
 		try {
 			let response = await this.sendClientPost(path, postData);
 
@@ -228,7 +268,7 @@ export class CreatioClient {
 			if (!response.body.success) {
 				throw new Error("Bad response: " + response.body.errorInfo.errorCode);
 			}
-			return response;
+			return response as ClientPostResponse<ResponseType>;
 		} catch (err: any) {
 			console.error(err);
 			vscode.window.showErrorMessage("Error proccessing server response. See logs for details.");
@@ -237,16 +277,16 @@ export class CreatioClient {
 	}
 
 	async getWorkspaceItems(): Promise<Array<SchemaMetaInfo>> {
-		let response = await this.trySendClientPost('/0/ServiceModel/WorkspaceExplorerService.svc/GetWorkspaceItems');
+		let response = await this.trySendClientPost<GetWorkspaceItemsResponse>('/0/ServiceModel/WorkspaceExplorerService.svc/GetWorkspaceItems');
 		return response ? response.body.items.map((x: any) => { return new SchemaMetaInfo(x); }) : [];
 	}
 
-	async getSchemaBuffer(schemaUId: string, type: SchemaType): Promise<Uint8Array> {
-		return Buffer.from(await this.getSchema(schemaUId, type));
+	async revertElements(schemas: Array<SchemaMetaInfo>): Promise<CreatioResponse | undefined> {
+		let response = await this.trySendClientPost<CreatioResponse>('/0/ServiceModel/SourceControlService.svc/RevertElements', schemas);
+		return response?.body;
 	}
 
-
-	async getSchema(schemaUId: string, type: SchemaType): Promise<string> {
+	async getSchema(schemaUId: string, type: SchemaType): Promise<Schema | null> {
 		const payload = {
 			"schemaUId": schemaUId
 		};
@@ -269,16 +309,22 @@ export class CreatioClient {
 				break;
 			case SchemaType.Entity:
 				svcPath = '/0/ServiceModel/EntitySchemaDesignerService.svc/GetSchema';
-				response = await this.trySendClientPost(svcPath, payload);
-				return response ? JSON.stringify(response.body.schema, null, 2) : `Error loading document with uId = ${schemaUId}. Try reloading workplace.`;
+				response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
+				return response.body.schema;
 			case SchemaType.Data:
 				svcPath = '/0/ServiceModel/SchemaDataDesignerService.svc/GetSchema';
-				response = await this.trySendClientPost(svcPath, payload);
-				return response ? JSON.stringify(response.body.schema, null, 2) : `Error loading document with uId = ${schemaUId}. Try reloading workplace.`;
+				response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
+				return response.body.schema;
+			default:
+				throw new Error("Invalid schema type");
 		}
 
-		response = await this.trySendClientPost(svcPath, payload);
-		return response ? response.body.schema.body : `Error loading document with uId = ${schemaUId}. Try reloading workplace.`;
+		response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
+		if (response?.body.schema) {
+			return response.body.schema;
+		} else {
+			throw new Error("Invalid schema response");
+		}
 	}
 
 	async build() {
@@ -389,20 +435,16 @@ export class CreatioClient {
 
 	async deleteSchema(schemaDatas: Array<any>) {
 		try {
-			return await this.sendClientPost('/0/ServiceModel/ClientUnitSchemaDesignerService.svc/SaveSchema', schemaDatas);
+			throw new Error('Not implemented');
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
 		}
 	}
 
-	async saveSchema(schema: any) {
-		try {
-			return await this.sendClientPost('/0/ServiceModel/ClientUnitSchemaDesignerService.svc/SaveSchema', schema);
-		} catch (err: any) {
-			vscode.window.showErrorMessage(err.message);
-			return err;
-		}
+	async saveSchema(schema: Schema): Promise<SaveSchemaResponse | undefined> {
+		let response = await this.trySendClientPost<SaveSchemaResponse>('/0/ServiceModel/ClientUnitSchemaDesignerService.svc/SaveSchema', schema);
+		return response?.body;
 	}
 
 	async getAvailableReferenceSchemas(id: string) {
