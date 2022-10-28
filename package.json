@@ -4,6 +4,8 @@
   "description": "VsCode integration with Creatio web editor",
   "version": "0.1.0",
   "repository": "https://github.com/LuckyOneDev/creatiocode",
+  "publisher": "LuckyOne",
+  "icon": "images/icon.png",
   "engines": {
     "vscode": "^1.72.0"
   },
