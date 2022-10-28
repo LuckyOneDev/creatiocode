@@ -2,24 +2,26 @@
 import * as vscode from 'vscode';
 import { CreatioClient, PackageMetaInfo, SchemaMetaInfo } from './creatio-api';
 import { CreatioFS } from './fileSystemProvider';
-import { NodeDependenciesProvider } from './nodeDepProv';
-import { CreatioExplorer } from './viewProvider';
+import { CreatioSchemaViewProvider } from './creatioSchemaViewProvider';
 
 async function getInput(oldInput: any) {
 	const url = await vscode.window.showInputBox({
 		title: 'Creatio url',
-		value: oldInput.url || "safilo-dev2.maticson-lab.ru"
+		value: oldInput?.url || "baseurl"
 	});
+	if (!url) return undefined;
 
 	const login = await vscode.window.showInputBox({
 		title: 'Creatio login',
-		value: oldInput.login || "Supervisor"
+		value: oldInput?.login || "Supervisor"
 	});
+	if (!login) return undefined;
 
 	const password = await vscode.window.showInputBox({
 		title: 'Creatio password',
-		value: oldInput.password || "Supervisor"
+		value: oldInput?.password || "Supervisor"
 	});
+	if (!password) return undefined;
 
 	return {
 		url: url,
@@ -30,10 +32,11 @@ async function getInput(oldInput: any) {
 
 function registerFileSystem(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.createCreatioWorkspace', async function () {
-		let input: any;
-		input = await getInput(context.workspaceState.get('login-data'));
-		vscode.workspace.updateWorkspaceFolders(0, 0, { uri: vscode.Uri.parse('creatio:/'), name: input.url });
-		context.workspaceState.update('login-data', input);
+		let input = await getInput(context.workspaceState.get('login-data'));
+		if (input) {
+			vscode.workspace.updateWorkspaceFolders(0, 0, { uri: vscode.Uri.parse('creatio:/'), name: input.url });
+			context.workspaceState.update('login-data', input);
+		}
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.reloadCreatioWorkspace', async function () {
@@ -71,17 +74,10 @@ export function activate(context: vscode.ExtensionContext) {
 	registerFileSystem(context);
 	registerContextMenus(context);
 
-	const rootPath =
-		vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0
-			? vscode.workspace.workspaceFolders[0].uri.fsPath
-			: undefined;
-
-	if (rootPath) {
-		vscode.window.registerTreeDataProvider(
-			'nodeDependencies',
-			new NodeDependenciesProvider(rootPath)
-		);
-	}
+	vscode.window.registerTreeDataProvider(
+		'creatioFileInfo',
+		CreatioSchemaViewProvider.getInstance()
+	);
 }
 
 // This method is called when your extension is deactivated

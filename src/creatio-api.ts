@@ -2,6 +2,12 @@
 import * as vscode from 'vscode';
 import * as http from 'http';
 
+export class ErrorInfo {
+	errorCode: any;
+	message: any;
+	stackTrace: any;
+}
+
 export enum SchemaType {
 	SqlScript = 0,
 	Data = 1,
@@ -32,15 +38,15 @@ export class PackageMetaInfo {
 }
 
 interface CreatioResponse {
-	errorInfo: null | any;
+	errorInfo: null | ErrorInfo;
 	success: boolean;
 }
 
-interface GetPackagesResponse extends CreatioResponse{
+interface GetPackagesResponse extends CreatioResponse {
 	packages: Array<SchemaMetaInfo>;
 }
 
-interface GetWorkspaceItemsResponse extends CreatioResponse{
+interface GetWorkspaceItemsResponse extends CreatioResponse {
 	items: Array<SchemaMetaInfo>;
 }
 
@@ -48,7 +54,7 @@ interface GetSchemaResponse extends CreatioResponse {
 	schema: Schema;
 }
 
-interface SaveSchemaResponse extends CreatioResponse{
+interface SaveSchemaResponse extends CreatioResponse {
 	buildResult: Number;
 	errorInfo: null | any;
 	errors: null | any;
@@ -62,11 +68,11 @@ export interface Schema {
 	isReadOnly: boolean;
 	caption: Array<{ cultureName: string; value: string }>;
 	description: Array<any>;
-	localizableStrings: Array<{uId: string, name: string, parentSchemaUId: string}>;
+	localizableStrings: Array<{ uId: string, name: string, parentSchemaUId: string }>;
 	parameters: Array<any>;
 	_markerCommentsTemplate: string;
 	messages: Array<any>;
-	images: Array<{uId: string, name: string, parentSchemaUId: string, isChanged: boolean}>;
+	images: Array<{ uId: string, name: string, parentSchemaUId: string, isChanged: boolean }>;
 	name: string;
 	body: string;
 	dependencies: any;
@@ -76,7 +82,7 @@ export interface Schema {
 	group: string;
 	less: string;
 	schemaType: SchemaType;
-	parent: undefined | {uId: string, name: string};
+	parent: undefined | { uId: string, name: string };
 }
 
 export class SchemaMetaInfo {
@@ -110,7 +116,7 @@ export class ClientPostResponse<ResponseType extends CreatioResponse> {
 export class CreatioClient {
 	cookies: any;
 	credentials: any;
-	
+
 	userAgent: string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36";
 	connected: boolean = false;
 
@@ -253,27 +259,35 @@ export class CreatioClient {
 		}
 		return true;
 	}
-	
-	async trySendClientPost<ResponseType extends CreatioResponse>(path: string, postData: any = null): Promise<ClientPostResponse<ResponseType> | null> {
-		try {
-			let response = await this.sendClientPost(path, postData);
 
-			if (response.response.statusCode !== 200) {
-				throw new Error("Bad request: " + response.response.statusCode);
-			}
-			if (!this.isJSON(response.body)) {
-				throw new Error("Invalid JSON string: \n" + response.body);
-			}
-			response.body = JSON.parse(response.body);
-			if (!response.body.success) {
-				throw new Error("Bad response: " + response.body.errorInfo.errorCode);
-			}
-			return response as ClientPostResponse<ResponseType>;
-		} catch (err: any) {
-			console.error(err);
-			vscode.window.showErrorMessage("Error proccessing server response. See logs for details.");
-			return null;
+	async trySendClientPost<ResponseType extends CreatioResponse>(path: string, postData: any = null): Promise<ClientPostResponse<ResponseType>> {
+		let response = await this.sendClientPost(path, postData);
+
+		if (response.response.statusCode !== 200) {
+			response.body = {};
+			response.body.errorInfo = {
+				errorCode: "http:" + response.response.statusCode,
+				message: response.response.statusMessage,
+				stackTrace: ""
+			};
+			response.body.success = false;
+			return response;
 		}
+
+		if (!this.isJSON(response.body)) {
+			console.error(response.body);
+			response.body = {};
+			response.body.errorInfo = {
+				errorCode: "JSON",
+				message: "Provided response is not a valid JSON string. See console for details.",
+				stackTrace: ""
+			};
+			response.body.success = false;
+			return response;
+		}
+
+		response.body = JSON.parse(response.body);
+		return response as ClientPostResponse<ResponseType>;
 	}
 
 	async getWorkspaceItems(): Promise<Array<SchemaMetaInfo>> {
@@ -442,9 +456,9 @@ export class CreatioClient {
 		}
 	}
 
-	async saveSchema(schema: Schema): Promise<SaveSchemaResponse | undefined> {
+	async saveSchema(schema: Schema): Promise<SaveSchemaResponse> {
 		let response = await this.trySendClientPost<SaveSchemaResponse>('/0/ServiceModel/ClientUnitSchemaDesignerService.svc/SaveSchema', schema);
-		return response?.body;
+		return response.body;
 	}
 
 	async getAvailableReferenceSchemas(id: string) {
