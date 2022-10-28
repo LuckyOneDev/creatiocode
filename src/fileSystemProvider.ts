@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import * as os from 'os';
 import * as fs from 'fs';
 
-import { CreatioClient, PackageMetaInfo, Schema, SchemaMetaInfo, SchemaType } from './creatio-api';
+import { CreatioClient, ErrorInfo, PackageMetaInfo, Schema, SchemaMetaInfo, SchemaType } from './creatio-api';
 
 export class File implements vscode.FileStat {
 
@@ -224,6 +224,10 @@ export class CreatioFS implements vscode.FileSystemProvider {
         }
     }
 
+    getFile(uri: vscode.Uri): File | undefined {
+        return this.files.find(x => this.getFilePath(x).path === uri.path);
+    }
+    
     readFile(uri: vscode.Uri): Uint8Array | Thenable<Uint8Array> {
         let file = this.files.find(x => this.getFilePath(x).path === uri.path);
         if (file && this.client) {
@@ -395,13 +399,15 @@ export class CreatioFS implements vscode.FileSystemProvider {
                 file.schema.body = content.toString();
                 vscode.window.showInformationMessage("File is saving...");
                 return this.client?.saveSchema(file.schema).then(response => {
-                    if (!response?.errorInfo) {
+                    if (!response.success) {
+                        vscode.window.showErrorMessage(response.errorInfo.message);
+                        return;
+                    } else {
                         this.writeToDisk(uri, content);
                         this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
                         file!.schemaMetaInfo.isChanged = true;
                         vscode.window.showInformationMessage("File saved");
-                    } else {
-                        throw vscode.FileSystemError.FileNotFound();
+                        return;
                     }
                 });   
             } else {
