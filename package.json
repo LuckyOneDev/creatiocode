@@ -2,7 +2,7 @@
   "name": "creatiocode",
   "displayName": "CreatioCode",
   "description": "VsCode integration with Creatio web editor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "repository": "https://github.com/LuckyOneDev/creatiocode",
   "publisher": "LuckyOne",
   "icon": "images/icon.png",
@@ -157,7 +157,6 @@
           "default": false,
           "description": "Whether to show dlls in file explorer."
         }
-        
       }
     }
   },
