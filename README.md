@@ -17,18 +17,17 @@ Restore files to svn version
 This extension contributes the following settings:
 
 For FileTypes:
-* ClientUnit
-* SourceCode
-* ProcessUserTask
-* SqlScript
-* Entity
-* Data
-* Process
-* Case
+ClientUnit,
+SourceCode,
+ProcessUserTask,
+SqlScript,
+Entity,
+Data,
+Process,
+Case
 
-
-* `creatiocode.fileTypes.<FileType>.Extension`: File extension for <FileType>
-* `creatiocode.fileTypes.<FileType>.Enabled`: Whether to show <FileType> in file explorer
+* `creatiocode.fileTypes.<FileType>.Extension`: File extension for FileType
+* `creatiocode.fileTypes.<FileType>.Enabled`: Whether to show FileType in file explorer
 
 ## Known Issues
 
