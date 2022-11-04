@@ -1,27 +1,34 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
-import { CreatioClient, PackageMetaInfo, SchemaMetaInfo } from './creatio-api';
+import { CreatioClient } from './api/creatioClient';
 import { CreatioFS } from './fileSystemProvider';
-import { CreatioSchemaViewProvider } from './creatioSchemaViewProvider';
+import { CreatioStatusBar } from './statusBar';
+import { CreatioWebViewProvider } from './ViewProviders/creatioWebViewProvider';
+import { SchemaMetaDataViewProvider } from './ViewProviders/schemaMetaDataViewProvider';
 
 async function getInput(oldInput: any) {
 	const url = await vscode.window.showInputBox({
 		title: 'Creatio url',
 		value: oldInput?.url || "baseurl"
 	});
-	if (!url) return undefined;
+	if (!url) {
+		return undefined;
+	}
 
 	const login = await vscode.window.showInputBox({
 		title: 'Creatio login',
 		value: oldInput?.login || "Supervisor"
 	});
-	if (!login) return undefined;
+	if (!login) {
+		return undefined;
+	}
 
 	const password = await vscode.window.showInputBox({
 		title: 'Creatio password',
 		value: oldInput?.password || "Supervisor"
 	});
-	if (!password) return undefined;
+	if (!password) {
+		return undefined;
+	}
 
 	return {
 		url: url,
@@ -41,9 +48,13 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.reloadCreatioWorkspace', async function () {
 		let fs = CreatioFS.getInstance();
-		fs.client = new CreatioClient(context.workspaceState.get("creditentials"));
-		await fs.client.connect();
-		await fs.initFileSystem();
+		if (context.workspaceState.get("login-data")) {
+			fs.client = new CreatioClient(context.workspaceState.get("login-data"));
+			await fs.client.connect();
+			await fs.initFileSystem();
+		} else {
+			vscode.window.showErrorMessage("No workspace found");
+		}
 	}));
 
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
@@ -74,10 +85,11 @@ export function activate(context: vscode.ExtensionContext) {
 	registerFileSystem(context);
 	registerContextMenus(context);
 
-	vscode.window.registerTreeDataProvider(
-		'creatioFileInfo',
-		CreatioSchemaViewProvider.getInstance()
-	);
+	context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider("creatioFileInfo", SchemaMetaDataViewProvider.getInstance())
+    );
+
+	CreatioStatusBar.show('Creatio not initialized');
 }
 
 // This method is called when your extension is deactivated

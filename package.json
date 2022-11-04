@@ -66,6 +66,11 @@
         {
           "id": "creatioFileInfo",
           "name": "Creatio: File Info"
+        },
+        {
+          "type": "webview",
+          "id": "creatioInheritance",
+          "name": "Creatio: File Inheritance"
         }
       ]
     },

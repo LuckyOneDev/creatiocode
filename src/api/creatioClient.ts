@@ -1,124 +1,55 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import * as http from 'http';
-
-export class ErrorInfo {
-	errorCode: any;
-	message: any;
-	stackTrace: any;
-}
-
-export enum SchemaType {
-	SqlScript = 0,
-	Data = 1,
-	Dll = 2,
-	Entity = 3,
-	ClientUnit = 4,
-	SourceCode = 5,
-	Process = 6,
-	Case = 7,
-	ProcessUserTask = 8,
-	Unknown = -1,
-}
-
-export class PackageMetaInfo {
-	createdBy: string = "";
-	createdOn: string = "";
-	description: string = "";
-	id: string = "";
-	isReadOnly: boolean = true;
-	maintainer: string = "";
-	modifiedBy: string = "";
-	modifiedOn: string = "";
-	name: string = "";
-	position: number = 0;
-	type: number = 0;
-	uId: string = "";
-	version: string = "";
-}
-
-interface CreatioResponse {
-	errorInfo: null | ErrorInfo;
-	success: boolean;
-}
-
-interface GetPackagesResponse extends CreatioResponse {
-	packages: Array<SchemaMetaInfo>;
-}
-
-interface GetWorkspaceItemsResponse extends CreatioResponse {
-	items: Array<SchemaMetaInfo>;
-}
-
-interface GetSchemaResponse extends CreatioResponse {
-	schema: Schema;
-}
-
-interface SaveSchemaResponse extends CreatioResponse {
-	buildResult: Number;
-	errorInfo: null | any;
-	errors: null | any;
-	message: null | string;
-	schemaUid: string;
-	success: boolean;
-}
-
-export interface Schema {
-	uId: string;
-	isReadOnly: boolean;
-	caption: Array<{ cultureName: string; value: string }>;
-	description: Array<any>;
-	localizableStrings: Array<{ uId: string, name: string, parentSchemaUId: string }>;
-	parameters: Array<any>;
-	_markerCommentsTemplate: string;
-	messages: Array<any>;
-	images: Array<{ uId: string, name: string, parentSchemaUId: string, isChanged: boolean }>;
-	name: string;
-	body: string;
-	dependencies: any;
-	id: string;
-	package: undefined | PackageMetaInfo;
-	extendParent: boolean;
-	group: string;
-	less: string;
-	schemaType: SchemaType;
-	parent: undefined | { uId: string, name: string };
-}
-
-export class SchemaMetaInfo {
-	constructor(data: Partial<SchemaMetaInfo>) {
-		Object.assign(this, data);
-	}
-
-	id: string = "";
-	uId: string = "";
-	isChanged: boolean = false;
-	isLocked: boolean = false;
-	isReadOnly: boolean = false;
-	modifiedOn: string = "";
-	name: string = "";
-	packageName: string = "";
-	packageRepository: any;
-	packageUId: string = "";
-	title: string = "";
-	type: SchemaType = SchemaType.Unknown;
-}
-
-export class ClientPostResponse<ResponseType extends CreatioResponse> {
-	body: ResponseType;
-	response: http.IncomingMessage;
-	constructor(body: any, response: http.IncomingMessage) {
-		this.body = body;
-		this.response = response;
-	}
-}
+import { ClientPostResponse, CreatioResponse, GetPackagesResponse, GetSchemaResponse, GetWorkspaceItemsResponse, PackageMetaInfo, SaveSchemaResponse, Schema, WorkSpaceItem, SchemaType, ReqestType } from './creatioInterfaces';
+import { CreatioStatusBar } from '../statusBar';
 
 export class CreatioClient {
+	readonly userAgent: string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36";
+
 	cookies: any;
 	credentials: any;
-
-	userAgent: string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36";
 	connected: boolean = false;
+	
+	getRequsetUrl(type : ReqestType) {
+		switch (type) {
+			case ReqestType.getCurrentUserInfo: return '/0/ServiceModel/UserInfoService.svc/GetCurrentUserInfo';
+			case ReqestType.getApplicationInfo: return '/0/ServiceModel/ApplicationInfoService.svc/GetApplicationInfo';
+			case ReqestType.getPackages: return '/0/ServiceModel/PackageService.svc/GetPackages';
+			case ReqestType.getWorkspaceItems: return '/0/ServiceModel/WorkspaceExplorerService.svc/GetWorkspaceItems';
+			case ReqestType.revertElements: return '/0/ServiceModel/SourceControlService.svc/RevertElements';
+			case ReqestType.getPackageState: return '/0/ServiceModel/SourceControlService.svc/GetPackageState';
+			case ReqestType.getSchemaMetaData: return '/0/ServiceModel/SchemaMetaDataService.svc/GetSchemaMetaData';
+			case ReqestType.saveSchema: return '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/SaveSchema';
+			case ReqestType.getAvailableReferenceSchemas: return '/0/ServiceModel/EntitySchemaDesignerService.svc/GetAvailableReferenceSchemas';
+			case ReqestType.login: return '/ServiceModel/AuthService.svc/Login';
+			case ReqestType.selectQuery: return '/DataService/json/SyncReply/SelectQuery';
+			case ReqestType.insertQuery: return '/DataService/json/SyncReply/InsertQuery';
+			case ReqestType.deleteQuery: return '/DataService/json/SyncReply/DeleteQuery';
+			case ReqestType.updateQuery: return '/DataService/json/SyncReply/UpdateQuery';
+			case ReqestType.runProcess: return '/0/ServiceModel/ProcessEngineService.svc/RunProcess';
+			case ReqestType.processSchemaRequest: return '/0/ServiceModel/ProcessSchemaRequestService.svc/ProcessSchemaRequest';
+			case ReqestType.processSchemaParameter: return '/0/DataService/json/SyncReply/ProcessSchemaParameter';
+			case ReqestType.runtimeEntitySchemaRequest: '/0/DataService/json/SyncReply/RuntimeEntitySchemaRequest';
+			case ReqestType.entitySchemaManagerRequest: '/0/DataService/json/SyncReply/EntitySchemaManagerRequest';
+			case ReqestType.restartApp: '/0/ServiceModel/AppInstallerService.svc/RestartApp';
+			case ReqestType.clearRedisDb: '/0/ServiceModel/AppInstallerService.svc/ClearRedisDb';
+			case ReqestType.executeSqlScript : '/0/rest/CreatioApiGateway/ExecuteSqlScript';
+			case ReqestType.pingWebHost : '/0/api/HealthCheck/Ping';
+			case ReqestType.pingWebApp  : '/api/HealthCheck/Ping';
+			case ReqestType.getPackageProperties : '/0/ServiceModel/PackageService.svc/GetPackageProperties';
+			case ReqestType.getClientUnitSchema: '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/GetSchema';
+			case ReqestType.getSqlSchema : '/0/ServiceModel/SqlScriptSchemaDesignerService.svc/GetSchema';
+			case ReqestType.setFeatureState: '/0/rest/FeatureStateService/SetFeatureState';
+			case ReqestType.startLogBroadcast : '/0/rest/ATFLogService/StartLogBroadcast';
+			case ReqestType.stopLogBroadcast : '/0/rest/ATFLogService/ResetConfiguration';
+			default: return '';
+		}
+	}
+
+ 	async executeCreatioCommand<ResponseType extends CreatioResponse>(type: ReqestType, data: any) {
+		return await this.trySendClientPost<ResponseType>(this.getRequsetUrl(type), data);
+	}
 
 	constructor(credentials: any) {
 		this.credentials = credentials;
@@ -128,7 +59,7 @@ export class CreatioClient {
 		return new Promise((resolve, reject) => {
 			if (postData) { postData = JSON.stringify(postData); }
 
-			var options = {
+			const options = {
 				host: this.credentials.url,
 				path: path,
 				method: 'POST',
@@ -220,7 +151,7 @@ export class CreatioClient {
 		this.cookies = response.response.headers['set-cookie'];
 		let flag = response.body.Message === "";
 		if (flag) {
-			vscode.window.showInformationMessage('Connected to Creatio');
+			CreatioStatusBar.update('Connected to Creatio');
 		} else {
 			vscode.window.showErrorMessage('Invalid login or password');
 		}
@@ -230,7 +161,7 @@ export class CreatioClient {
 
 	async getCurrentUserInfo() {
 		try {
-			return await this.sendClientPost('/0/ServiceModel/UserInfoService.svc/GetCurrentUserInfo');
+			return await this.sendClientPost(this.getRequsetUrl(ReqestType.getCurrentUserInfo));
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -239,7 +170,7 @@ export class CreatioClient {
 
 	async getApplicationInfo() {
 		try {
-			return await this.sendClientPost('/0/ServiceModel/ApplicationInfoService.svc/GetApplicationInfo');
+			return await this.sendClientPost(this.getRequsetUrl(ReqestType.getApplicationInfo));
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -247,7 +178,7 @@ export class CreatioClient {
 	}
 
 	async getPackages(): Promise<Array<PackageMetaInfo>> {
-		let response = await this.trySendClientPost<GetPackagesResponse>('/0/ServiceModel/PackageService.svc/GetPackages');
+		let response = await this.trySendClientPost<GetPackagesResponse>(this.getRequsetUrl(ReqestType.getPackages));
 		return response ? response.body.packages.map((x: any) => { return x; }) : [];
 	}
 
@@ -290,12 +221,12 @@ export class CreatioClient {
 		return response as ClientPostResponse<ResponseType>;
 	}
 
-	async getWorkspaceItems(): Promise<Array<SchemaMetaInfo>> {
+	async getWorkspaceItems(): Promise<Array<WorkSpaceItem>> {
 		let response = await this.trySendClientPost<GetWorkspaceItemsResponse>('/0/ServiceModel/WorkspaceExplorerService.svc/GetWorkspaceItems');
-		return response ? response.body.items.map((x: any) => { return new SchemaMetaInfo(x); }) : [];
+		return response ? response.body.items : [];
 	}
 
-	async revertElements(schemas: Array<SchemaMetaInfo>): Promise<CreatioResponse | undefined> {
+	async revertElements(schemas: Array<WorkSpaceItem>): Promise<CreatioResponse | undefined> {
 		let response = await this.trySendClientPost<CreatioResponse>('/0/ServiceModel/SourceControlService.svc/RevertElements', schemas);
 		return response?.body;
 	}
@@ -309,23 +240,23 @@ export class CreatioClient {
 		let svcPath = "";
 
 		switch (type) {
-			case SchemaType.ClientUnit:
+			case SchemaType.clientUnit:
 				svcPath = '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/GetSchema';
 				break;
-			case SchemaType.SourceCode:
+			case SchemaType.sourceCode:
 				svcPath = '/0/ServiceModel/SourceCodeSchemaDesignerService.svc/GetSchema';
 				break;
-			case SchemaType.SqlScript:
+			case SchemaType.sqlScript:
 				svcPath = '/0/ServiceModel/SqlScriptSchemaDesignerService.svc/GetSchema';
 				break;
-			case SchemaType.ProcessUserTask:
+			case SchemaType.processUserTask:
 				svcPath = '/0/ServiceModel/ProcessUserTaskSchemaDesignerService.svc/GetSchema';
 				break;
-			case SchemaType.Entity:
+			case SchemaType.entity:
 				svcPath = '/0/ServiceModel/EntitySchemaDesignerService.svc/GetSchema';
 				response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
 				return response.body.schema;
-			case SchemaType.Data:
+			case SchemaType.data:
 				svcPath = '/0/ServiceModel/SchemaDataDesignerService.svc/GetSchema';
 				response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
 				return response.body.schema;

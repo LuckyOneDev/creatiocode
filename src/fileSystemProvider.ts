@@ -1,10 +1,11 @@
-/* eslint-disable curly */
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as os from 'os';
 import * as fs from 'fs';
 
-import { CreatioClient, ErrorInfo, PackageMetaInfo, Schema, SchemaMetaInfo, SchemaType } from './creatio-api';
+import { CreatioClient } from './api/creatioClient';
+import { PackageMetaInfo, Schema, WorkSpaceItem, SchemaType } from './api/creatioInterfaces';
+import { CreatioStatusBar } from './statusBar';
 
 export class File implements vscode.FileStat {
 
@@ -13,12 +14,12 @@ export class File implements vscode.FileStat {
     mtime: number;
     size: number;
     name: string;
-    schemaMetaInfo: SchemaMetaInfo;
-    
+    schemaMetaInfo: WorkSpaceItem;
+
     schema?: Schema;
     permissions?: vscode.FilePermission;
 
-    constructor(name: string, schema: SchemaMetaInfo, ctime: number = Date.now(), mtime: number = Date.now(), size: number = 0) {
+    constructor(name: string, schema: WorkSpaceItem, ctime: number = Date.now(), mtime: number = Date.now(), size: number = 0) {
         this.type = vscode.FileType.File;
         this.ctime = ctime;
         this.mtime = mtime;
@@ -53,38 +54,55 @@ export class Directory implements vscode.FileStat {
 export type Entry = File | Directory;
 
 export class CreatioFS implements vscode.FileSystemProvider {
-	async revertSchema(uri: vscode.Uri): Promise<void> {
+    // Singleton
+    private constructor() { }
+    private static instance: CreatioFS;
+    public static getInstance(): CreatioFS {
+        if (!CreatioFS.instance) {
+            CreatioFS.instance = new CreatioFS();
+        }
+        return CreatioFS.instance;
+    }
+
+    async revertSchema(uri: vscode.Uri): Promise<void> {
         let file = this.files.find(x => this.getFilePath(x).path === uri.path);
         if (file?.schemaMetaInfo) {
             if (file?.schemaMetaInfo.isChanged) {
-                vscode.window.showInformationMessage("Schema is being restored. Please wait...");
+                CreatioStatusBar.animate("Restoring schema");
                 let response = await this.client?.revertElements([file?.schemaMetaInfo]);
                 if (response?.success) {
                     let schema = await this.client?.getSchema(file?.schemaMetaInfo.uId, file?.schemaMetaInfo.type);
-                
+
                     if (schema && schema.body) {
                         this.writeToDisk(uri, schema.body);
                         await vscode.window.activeTextEditor?.edit((edit) => {
-                            const document = vscode.window.activeTextEditor?.document;
-                            edit.replace(new vscode.Range(
-                                document!.lineAt(0).range.start,
-                                document!.lineAt(document!.lineCount - 1).range.end
-                            ), schema!.body);
-                            vscode.window.showInformationMessage("Schema restored");
+                            vscode.window.visibleTextEditors.forEach((editor) => {
+                                const document = editor.document;
+                                if (document?.uri === uri) {
+                                    edit.replace(new vscode.Range(
+                                        document!.lineAt(0).range.start,
+                                        document!.lineAt(document!.lineCount - 1).range.end
+                                    ), schema!.body);
+                                }
+                            });
+                            CreatioStatusBar.update("Schema restored");
                         });
                     }
                 } else {
                     vscode.window.showErrorMessage(JSON.stringify(response?.errorInfo));
+                    CreatioStatusBar.update("Error");
                 }
             } else {
                 vscode.window.showErrorMessage("Schema is not changed!");
+                CreatioStatusBar.update("Error");
             }
         } else {
             vscode.window.showErrorMessage("Schema not found");
+            CreatioStatusBar.update("Error");
         }
-	}
+    }
 
-	async clearCache() {
+    async clearCache() {
         return new Promise<void>((resolve, reject) => {
             vscode.window.showInformationMessage("Delete all downloaded files?", "Yes", "No").then(async (value) => {
                 if (value && value === "Yes") {
@@ -99,7 +117,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
                 }
             });
         });
-	}
+    }
 
     async cacheFolder(folder: vscode.Uri): Promise<void> {
         vscode.window.showInformationMessage("Download package?", "Yes", "No").then(async (value) => {
@@ -115,24 +133,11 @@ export class CreatioFS implements vscode.FileSystemProvider {
         });
     }
 
-    private static instance: CreatioFS;
+
     config = vscode.workspace.getConfiguration('creatiocode');
     folders: Directory[] = [];
     files: File[] = [];
-    /**
-     * The Singleton's constructor should always be private to prevent direct
-     * construction calls with the `new` operator.
-     */
-    private constructor() { }
-
     root = new Directory('/');
-
-    public static getInstance(): CreatioFS {
-        if (!CreatioFS.instance) {
-            CreatioFS.instance = new CreatioFS();
-        }
-        return CreatioFS.instance;
-    }
 
     client: CreatioClient | null = null;
 
@@ -148,23 +153,23 @@ export class CreatioFS implements vscode.FileSystemProvider {
         return vscode.Uri.parse(`creatio:/${file.schemaMetaInfo.packageName}/${this.getFileWithExtension(file.schemaMetaInfo)}`);
     }
 
-    private getFileWithExtension(schema: SchemaMetaInfo): string {
+    private getFileWithExtension(schema: WorkSpaceItem): string {
         switch (schema.type) {
-            case SchemaType.ClientUnit:
+            case SchemaType.clientUnit:
                 return schema.name + this.config.get("fileTypes.ClientUnit.Extension");
-            case SchemaType.SourceCode:
+            case SchemaType.sourceCode:
                 return schema.name + this.config.get("fileTypes.SourceCode.Extension");
-            case SchemaType.ProcessUserTask:
+            case SchemaType.processUserTask:
                 return schema.name + this.config.get("fileTypes.ProcessUserTask.Extension");
-            case SchemaType.SqlScript:
+            case SchemaType.sqlScript:
                 return schema.name + this.config.get("fileTypes.SqlScript.Extension");
-            case SchemaType.Entity:
+            case SchemaType.entity:
                 return schema.name + this.config.get("fileTypes.Entity.Extension");
-            case SchemaType.Data:
+            case SchemaType.data:
                 return schema.name + this.config.get("fileTypes.Data.Extension");
-            case SchemaType.Process:
+            case SchemaType.process:
                 return schema.name + this.config.get("fileTypes.Process.Extension");
-            case SchemaType.Case:
+            case SchemaType.case:
                 return schema.name + this.config.get("fileTypes.Case.Extension");
             default:
                 return schema.name;
@@ -172,13 +177,19 @@ export class CreatioFS implements vscode.FileSystemProvider {
     }
 
     stat(uri: vscode.Uri): vscode.FileStat {
-        if (uri.path === "/") return this.root;
+        if (uri.path === "/") {
+            return this.root;
+        }
 
         let folder = this.folders.find(x => this.getDirectoryPath(x).path === uri.path);
-        if (folder) return folder;
+        if (folder) {
+            return folder;
+        }
 
         let file = this.files.find(x => this.getFilePath(x).path === uri.path);
-        if (file) return file;
+        if (file) {
+            return file;
+        }
 
         throw vscode.FileSystemError.FileNotFound();
     }
@@ -201,13 +212,17 @@ export class CreatioFS implements vscode.FileSystemProvider {
 
     private getSysFilePath(uri: vscode.Uri): string {
         let tmpDir = os.tmpdir();
-        if (!this.client?.credentials.url) throw Error();
+        if (!this.client?.credentials.url) {
+            throw Error();
+        }
         return this.getCacheFolder() + this.client.credentials.url + path.dirname(uri.path);
     }
 
     private writeToDisk(uri: vscode.Uri, data: string | NodeJS.ArrayBufferView) {
         let filename = uri.toString().split('/').pop();
-        if (!this.client?.credentials.url) throw Error();
+        if (!this.client?.credentials.url) {
+            throw Error();
+        }
         if (!fs.existsSync(this.getSysFilePath(uri))) {
             fs.mkdirSync(this.getSysFilePath(uri), { recursive: true });
         }
@@ -216,7 +231,10 @@ export class CreatioFS implements vscode.FileSystemProvider {
 
     private readFromDisk(uri: vscode.Uri): Buffer | undefined {
         let filename = uri.toString().split('/').pop();
-        if (!this.client?.credentials.url) throw vscode.FileSystemError.FileNotFound();
+        if (!this.client?.credentials.url) {
+            throw vscode.FileSystemError.FileNotFound();
+        }
+
         try {
             return fs.readFileSync(this.getSysFilePath(uri) + "/" + filename);
         } catch (error) {
@@ -227,7 +245,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
     getFile(uri: vscode.Uri): File | undefined {
         return this.files.find(x => this.getFilePath(x).path === uri.path);
     }
-    
+
     readFile(uri: vscode.Uri): Uint8Array | Thenable<Uint8Array> {
         let file = this.files.find(x => this.getFilePath(x).path === uri.path);
         if (file && this.client) {
@@ -251,10 +269,10 @@ export class CreatioFS implements vscode.FileSystemProvider {
                                 if (value && value === "Yes") {
                                     this.writeToDisk(uri, schema.body);
                                     this._fireSoon(
-                                    {
-                                        type: vscode.FileChangeType.Changed,
-                                        uri: uri
-                                    });
+                                        {
+                                            type: vscode.FileChangeType.Changed,
+                                            uri: uri
+                                        });
                                     await vscode.window.activeTextEditor?.edit((edit) => {
                                         const document = vscode.window.activeTextEditor?.document;
                                         edit.replace(new vscode.Range(
@@ -262,7 +280,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
                                             document!.lineAt(document!.lineCount - 1).range.end
                                         ), schema.body.toString());
                                     });
-    
+
                                     vscode.window.showInformationMessage("File updated");
                                 }
                             });
@@ -324,23 +342,23 @@ export class CreatioFS implements vscode.FileSystemProvider {
 
     private getFileTypeEnabled(type: SchemaType) {
         switch (type) {
-            case SchemaType.ClientUnit:
+            case SchemaType.clientUnit:
                 return this.config.get("fileTypes.ClientUnit.Enabled");
-            case SchemaType.Case:
+            case SchemaType.case:
                 return this.config.get("fileTypes.Case.Enabled");
-            case SchemaType.Data:
+            case SchemaType.data:
                 return this.config.get("fileTypes.Data.Enabled");
-            case SchemaType.Dll:
+            case SchemaType.dll:
                 return this.config.get("fileTypes.Dll.Enabled");
-            case SchemaType.Entity:
+            case SchemaType.entity:
                 return this.config.get("fileTypes.Entity.Enabled");
-            case SchemaType.SourceCode:
+            case SchemaType.sourceCode:
                 return this.config.get("fileTypes.SourceCode.Enabled");
-            case SchemaType.SqlScript:
+            case SchemaType.sqlScript:
                 return this.config.get("fileTypes.SqlScript.Enabled");
-            case SchemaType.Process:
+            case SchemaType.process:
                 return this.config.get("fileTypes.Process.Enabled");
-            case SchemaType.ProcessUserTask:
+            case SchemaType.processUserTask:
                 return this.config.get("fileTypes.ProcessUserTask.Enabled");
             default:
                 return false;
@@ -354,7 +372,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
             if (fileName) {
                 return this.getFileType(fileName);
             } else {
-                return SchemaType.Unknown;
+                return SchemaType.unknown;
             }
         }
 
@@ -362,27 +380,27 @@ export class CreatioFS implements vscode.FileSystemProvider {
             let extension = uri.split('.').pop();
             switch (extension) {
                 case this.config.get("fileTypes.ClientUnit.Extension"):
-                    return SchemaType.ClientUnit;
+                    return SchemaType.clientUnit;
                 case this.config.get("fileTypes.SourceCode.Extension"):
-                    return SchemaType.SourceCode;
+                    return SchemaType.sourceCode;
                 case this.config.get("fileTypes.ProcessUserTask.Extension"):
-                    return SchemaType.ProcessUserTask;
+                    return SchemaType.processUserTask;
                 case this.config.get("fileTypes.SqlScript.Extension"):
-                    return SchemaType.SqlScript;
+                    return SchemaType.sqlScript;
                 case this.config.get("fileTypes.Entity.Extension"):
-                    return SchemaType.Entity;
+                    return SchemaType.entity;
                 case this.config.get("fileTypes.Data.Extension"):
-                    return SchemaType.Data;
+                    return SchemaType.data;
                 case this.config.get("fileTypes.Process.Extension"):
-                    return SchemaType.Process;
+                    return SchemaType.process;
                 case this.config.get("fileTypes.Case.Extension"):
-                    return SchemaType.Case;
+                    return SchemaType.case;
                 default:
-                    return SchemaType.Unknown;
+                    return SchemaType.unknown;
             }
         }
 
-        return SchemaType.Unknown;
+        return SchemaType.unknown;
     }
 
     writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): void | Thenable<void> {
@@ -394,26 +412,27 @@ export class CreatioFS implements vscode.FileSystemProvider {
                 // this._fireSoon({ type: vscode.FileChangeType.Created, uri });
                 throw new Error("Not implemented");
             }
-        } else if (options.overwrite) {
-            if (file?.schema) {
-                file.schema.body = content.toString();
-                vscode.window.showInformationMessage("File is saving...");
-                return this.client?.saveSchema(file.schema).then(response => {
-                    if (!response.success) {
-                        vscode.window.showErrorMessage(response.errorInfo.message);
-                        return;
-                    } else {
-                        this.writeToDisk(uri, content);
-                        this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
-                        file!.schemaMetaInfo.isChanged = true;
-                        vscode.window.showInformationMessage("File saved");
-                        return;
-                    }
-                });   
-            } else {
-                throw vscode.FileSystemError.FileNotFound();
-            }
         }
+
+        if (options.overwrite && file?.schema) {
+            file.schema.body = content.toString();
+            CreatioStatusBar.animate("Saving file");
+            return this.client?.saveSchema(file.schema).then(response => {
+                if (!response.success) {
+                    vscode.window.showErrorMessage(response.errorInfo.message);
+                    CreatioStatusBar.update("Error saving file");
+                    return;
+                } else {
+                    this.writeToDisk(uri, content);
+                    this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+                    file!.schemaMetaInfo.isChanged = true;
+                    CreatioStatusBar.update("File saved");
+                    return;
+                }
+            });
+        }
+
+        throw vscode.FileSystemError.FileNotFound();
     }
 
     rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void {
