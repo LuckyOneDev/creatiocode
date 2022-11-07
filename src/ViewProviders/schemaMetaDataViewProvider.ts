@@ -8,7 +8,14 @@ export class SchemaMetaDataViewProvider extends CreatioWebViewProvider {
   private static instance: SchemaMetaDataViewProvider;
 
   protected getStyles(): string {
-    return '';
+    return `
+    table {
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid white;
+    }
+    `;
   }
 
   createTableString(tableData: Array<Array<string>>): string {

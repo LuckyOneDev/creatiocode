@@ -298,17 +298,18 @@ export class CreatioFS implements vscode.FileSystemProvider {
 
     async initFileSystem() {
         if (this.client?.connected && this.client.connected) {
-            vscode.window.showInformationMessage("Loading files...");
-
+            CreatioStatusBar.animate("Loading files");
             this.folders = (await this.client.getPackages()).map(x => new Directory(x.name, x));
             if (this.folders.length === 0) {
                 vscode.window.showErrorMessage("Something went wrong. No packages found");
+                CreatioStatusBar.update("Error");
                 return;
             }
 
             this.files = (await this.client.getWorkspaceItems()).map(x => new File(this.getFileWithExtension(x), x));
             if (this.files.length === 0) {
                 vscode.window.showErrorMessage("Something went wrong. No schemas found");
+                CreatioStatusBar.update("Error");
                 return;
             }
 
@@ -334,7 +335,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
                     });
             });
 
-            vscode.window.showInformationMessage("Files loaded...");
+            CreatioStatusBar.update("Filesystem loaded");
         } else {
             this.reconnectDialouge();
         }

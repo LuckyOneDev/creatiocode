@@ -11,17 +11,14 @@ export abstract class CreatioWebViewProvider implements vscode.WebviewViewProvid
   protected abstract getBody(): string;
   
   protected getHtml(): string {
-    return `
-    <html>
-    <head><style>${this.getStyles()}</style></head>
-    <body>${this.getBody()}</body>
-    </html>`;
+    return `<html><head><style>${this.getStyles()}</style></head><body>${this.getBody()}</body></html>`;
   }
   
   protected reloadWebview() {
     if (this.webviewView) {
       this.webviewView.webview.options = { enableScripts: true };
       this.webviewView.webview.html = this.getHtml();
+      this.webviewView.webview.postMessage({ command: 'reload' });
     }
   }
 

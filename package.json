@@ -64,6 +64,8 @@
     "views": {
       "explorer": [
         {
+          "when": "resource =~ /creatio/",
+          "type": "webview",
           "id": "creatioFileInfo",
           "name": "Creatio: File Info"
         },
