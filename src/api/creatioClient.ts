@@ -226,6 +226,13 @@ export class CreatioClient {
 		return response ? response.body.items : [];
 	}
 
+	async selectQuery(sql: string): Promise<any> {
+		const payload = {
+			"script": sql
+		};
+		let response = await this.trySendClientPost<CreatioResponse>('/0/DataService/json/SyncReply/SelectQuery', payload);
+		return response?.body;
+	}
 	async revertElements(schemas: Array<WorkSpaceItem>): Promise<CreatioResponse | undefined> {
 		let response = await this.trySendClientPost<CreatioResponse>('/0/ServiceModel/SourceControlService.svc/RevertElements', schemas);
 		return response?.body;

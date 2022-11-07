@@ -54,6 +54,11 @@ export class Directory implements vscode.FileStat {
 export type Entry = File | Directory;
 
 export class CreatioFS implements vscode.FileSystemProvider {
+    getSchemaUri(uId: string): vscode.Uri | undefined {
+        let file = this.files.find(x => x.schemaMetaInfo.uId === uId);
+        return file?.schemaMetaInfo.uId ? this.getFilePath(file) : undefined;
+    }
+
     // Singleton
     private constructor() { }
     private static instance: CreatioFS;
@@ -250,13 +255,16 @@ export class CreatioFS implements vscode.FileSystemProvider {
         let file = this.files.find(x => this.getFilePath(x).path === uri.path);
         if (file && this.client) {
             let data = this.readFromDisk(uri);
+            CreatioStatusBar.animate("Loading file...");
             if (!data) {
                 return this.client.getSchema(file.schemaMetaInfo.uId, file.schemaMetaInfo.type).then(schema => {
                     if (schema) {
                         file!.schema = schema;
                         this.writeToDisk(uri, schema.body);
+                        CreatioStatusBar.update("File loaded");
                         return Buffer.from(schema.body);
                     } else {
+                        CreatioStatusBar.update("Error loading file!");
                         throw vscode.FileSystemError.FileNotFound();
                     }
                 });
@@ -286,12 +294,15 @@ export class CreatioFS implements vscode.FileSystemProvider {
                             });
                         }
                     } else {
+                        CreatioStatusBar.update("Error loading file!");
                         throw vscode.FileSystemError.FileNotFound();
                     }
                 });
+                CreatioStatusBar.update("File loaded");
                 return data;
             }
         }
+        CreatioStatusBar.update("Error loading file!");
         throw vscode.FileSystemError.FileNotFound();
     }
 

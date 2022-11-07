@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { CreatioClient } from './api/creatioClient';
 import { CreatioFS } from './fileSystemProvider';
 import { CreatioStatusBar } from './statusBar';
-import { CreatioWebViewProvider } from './ViewProviders/creatioWebViewProvider';
 import { SchemaMetaDataViewProvider } from './ViewProviders/schemaMetaDataViewProvider';
+import { InheritanceViewProvider } from './ViewProviders/inheritanceView/inheritanceViewProvider';
 
 async function getInput(oldInput: any) {
 	const url = await vscode.window.showInputBox({
@@ -37,24 +37,32 @@ async function getInput(oldInput: any) {
 	};
 }
 
+async function reloadWorkSpace(context: vscode.ExtensionContext) {
+	let fs = CreatioFS.getInstance();
+	if (context.workspaceState.get("login-data")) {
+		fs.client = new CreatioClient(context.workspaceState.get("login-data"));
+		await fs.client.connect();
+		await fs.initFileSystem();
+	} else {
+		vscode.window.showErrorMessage("No workspace found");
+	}
+}
+
+async function createWorkspace(context: vscode.ExtensionContext) {
+	let input = await getInput(context.workspaceState.get('login-data'));
+	if (input) {
+		vscode.workspace.updateWorkspaceFolders(0, 0, { uri: vscode.Uri.parse('creatio:/'), name: input.url });
+		context.workspaceState.update('login-data', input);
+	}
+}
+
 function registerFileSystem(context: vscode.ExtensionContext) {
-	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.createCreatioWorkspace', async function () {
-		let input = await getInput(context.workspaceState.get('login-data'));
-		if (input) {
-			vscode.workspace.updateWorkspaceFolders(0, 0, { uri: vscode.Uri.parse('creatio:/'), name: input.url });
-			context.workspaceState.update('login-data', input);
-		}
+	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.createCreatioWorkspace', async () => {
+		createWorkspace(context);
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.reloadCreatioWorkspace', async function () {
-		let fs = CreatioFS.getInstance();
-		if (context.workspaceState.get("login-data")) {
-			fs.client = new CreatioClient(context.workspaceState.get("login-data"));
-			await fs.client.connect();
-			await fs.initFileSystem();
-		} else {
-			vscode.window.showErrorMessage("No workspace found");
-		}
+	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.reloadCreatioWorkspace', async () => {
+		reloadWorkSpace(context);
 	}));
 
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
@@ -85,9 +93,27 @@ export function activate(context: vscode.ExtensionContext) {
 	registerFileSystem(context);
 	registerContextMenus(context);
 
+	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.executeSQL', async () => {
+		const client = CreatioFS.getInstance().client;
+		if (client) {
+			let sql = await vscode.window.showInputBox({
+				title: 'Creatio sql',
+				value: "select * from SysUser"
+			});
+			if (sql) {
+				let result = await client.selectQuery(sql);
+				vscode.window.showInformationMessage(result);
+			}
+		}
+	}));
+
 	context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider("creatioFileInfo", SchemaMetaDataViewProvider.getInstance())
-    );
+		vscode.window.registerWebviewViewProvider("creatioFileInfo", new SchemaMetaDataViewProvider(context))
+	);
+
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider("creatioInheritance", new InheritanceViewProvider(context))
+	);
 
 	CreatioStatusBar.show('Creatio not initialized');
 }

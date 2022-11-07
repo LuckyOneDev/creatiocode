@@ -113,7 +113,7 @@ export interface Schema {
 	group: string;
 	less: string;
 	schemaType: SchemaType;
-	parent: Schema;
+	parent: Schema | undefined;
 }
 
 export interface WorkSpaceItem {
