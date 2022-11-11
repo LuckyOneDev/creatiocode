@@ -8,6 +8,7 @@ import { CreatioStatusBar } from '../../statusBar';
 
 export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     loading?: Promise<void>;
+    loadedSchema?: WorkSpaceItem;
     protected getScripts(): string[] {
         return ['./src/ViewProviders/inheritanceView/inheritanceView.js/'];
     }
@@ -62,22 +63,23 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     }
 
     protected getBody(): string {
-        if (this.loading) {
-            this.loading.then(() => {});
-        }
-        
         if (!this.currentShema) {
-            return 'Schema not selected';
+            return "Schema not selected";
         }
-        if (this.schemas) {
-            return this.buildInheritanceTree(this.schemas);
+
+        if (this.schemas && this.loadedSchema?.uId === this.currentShema.uId) {
+                return this.buildInheritanceTree(this.schemas);
+
         } else {
             this.loading = this.getParentSchemas(this.currentShema).then((schemas) => {
                 this.schemas = schemas;
+                this.loadedSchema = this.currentShema;
                 this.reloadWebview();
             });
             return `<span class="loader"></span>`;
         }
+
+
     }
 
     buildInheritanceTree(schemas: Schema[]): string {

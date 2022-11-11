@@ -10,8 +10,8 @@ export class CreatioClient {
 	cookies: any;
 	credentials: any;
 	connected: boolean = false;
-	
-	getRequsetUrl(type : ReqestType) {
+
+	getRequsetUrl(type: ReqestType) {
 		switch (type) {
 			case ReqestType.getCurrentUserInfo: return '/0/ServiceModel/UserInfoService.svc/GetCurrentUserInfo';
 			case ReqestType.getApplicationInfo: return '/0/ServiceModel/ApplicationInfoService.svc/GetApplicationInfo';
@@ -34,20 +34,20 @@ export class CreatioClient {
 			case ReqestType.entitySchemaManagerRequest: '/0/DataService/json/SyncReply/EntitySchemaManagerRequest';
 			case ReqestType.restartApp: '/0/ServiceModel/AppInstallerService.svc/RestartApp';
 			case ReqestType.clearRedisDb: '/0/ServiceModel/AppInstallerService.svc/ClearRedisDb';
-			case ReqestType.executeSqlScript : '/0/rest/CreatioApiGateway/ExecuteSqlScript';
-			case ReqestType.pingWebHost : '/0/api/HealthCheck/Ping';
-			case ReqestType.pingWebApp  : '/api/HealthCheck/Ping';
-			case ReqestType.getPackageProperties : '/0/ServiceModel/PackageService.svc/GetPackageProperties';
+			case ReqestType.executeSqlScript: '/0/rest/CreatioApiGateway/ExecuteSqlScript';
+			case ReqestType.pingWebHost: '/0/api/HealthCheck/Ping';
+			case ReqestType.pingWebApp: '/api/HealthCheck/Ping';
+			case ReqestType.getPackageProperties: '/0/ServiceModel/PackageService.svc/GetPackageProperties';
 			case ReqestType.getClientUnitSchema: '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/GetSchema';
-			case ReqestType.getSqlSchema : '/0/ServiceModel/SqlScriptSchemaDesignerService.svc/GetSchema';
+			case ReqestType.getSqlSchema: '/0/ServiceModel/SqlScriptSchemaDesignerService.svc/GetSchema';
 			case ReqestType.setFeatureState: '/0/rest/FeatureStateService/SetFeatureState';
-			case ReqestType.startLogBroadcast : '/0/rest/ATFLogService/StartLogBroadcast';
-			case ReqestType.stopLogBroadcast : '/0/rest/ATFLogService/ResetConfiguration';
+			case ReqestType.startLogBroadcast: '/0/rest/ATFLogService/StartLogBroadcast';
+			case ReqestType.stopLogBroadcast: '/0/rest/ATFLogService/ResetConfiguration';
 			default: return '';
 		}
 	}
 
- 	async executeCreatioCommand<ResponseType extends CreatioResponse>(type: ReqestType, data: any) {
+	async executeCreatioCommand<ResponseType extends CreatioResponse>(type: ReqestType, data: any) {
 		return await this.trySendClientPost<ResponseType>(this.getRequsetUrl(type), data);
 	}
 
@@ -238,6 +238,25 @@ export class CreatioClient {
 		return response?.body;
 	}
 
+	wait(ms: number) {
+		return new Promise(r => setTimeout(r, ms));
+	}
+
+	retryOperation<T>(operation: () => Promise<T>, delay: number, retries: number): Promise<T> {
+		return new Promise((resolve, reject) => {
+			return  operation()
+				.then(resolve)
+				.catch((reason: any) => {
+					if (retries > 0) {
+						return this.wait(delay)
+							.then(this.retryOperation.bind(null, operation, delay, retries - 1))
+							.catch(reject);
+					}
+					return reject(reason);
+				});
+		});
+	}
+
 	async getSchema(schemaUId: string, type: SchemaType): Promise<Schema | null> {
 		const payload = {
 			"schemaUId": schemaUId
@@ -271,7 +290,8 @@ export class CreatioClient {
 				throw new Error("Invalid schema type");
 		}
 
-		response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
+		// response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
+		response = await this.retryOperation(() => this.trySendClientPost<GetSchemaResponse>(svcPath, payload), 25, 5);
 		if (response?.body.schema) {
 			return response.body.schema;
 		} else {

@@ -125,15 +125,25 @@ export class CreatioFS implements vscode.FileSystemProvider {
     }
 
     async cacheFolder(folder: vscode.Uri): Promise<void> {
+        if (folder.path === "/") return;
         vscode.window.showInformationMessage("Download package?", "Yes", "No").then(async (value) => {
             if (value && value === "Yes") {
-                let files = this.readDirectory(folder);
-                await Promise.all(files.map(async x => {
-                    setTimeout(async () => {
-                        await this.readFile(vscode.Uri.parse(folder.toString() + "/" + x[0]));
-                    }, 5);
-                }));
-                vscode.window.showInformationMessage("Files downloaded!");
+                vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Notification,
+                  }, 
+                  async (progress) => {
+                    progress.report({
+                      message: `Downloading package '${folder.path}' ...`,
+                    });
+
+                    let files = this.readDirectory(folder);
+                    let a = files.map(async x => {
+                        setTimeout(async () => {
+                            await this.readFile(vscode.Uri.parse(folder.toString() + "/" + x[0]));
+                        }, 5);
+                    });
+                    await Promise.all(a);
+                  });
             }
         });
     }
@@ -216,11 +226,10 @@ export class CreatioFS implements vscode.FileSystemProvider {
     }
 
     private getSysFilePath(uri: vscode.Uri): string {
-        let tmpDir = os.tmpdir();
         if (!this.client?.credentials.url) {
             throw Error();
         }
-        return this.getCacheFolder() + this.client.credentials.url + path.dirname(uri.path);
+        return this.getCacheFolder() + this.client.credentials.url + "/" + path.dirname(uri.path);
     }
 
     private writeToDisk(uri: vscode.Uri, data: string | NodeJS.ArrayBufferView) {
