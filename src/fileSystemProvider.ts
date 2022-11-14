@@ -434,6 +434,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
     }
 
     writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): void | Thenable<void> {
+        this.writeToDisk(uri, content);
         let file = this.files.find(x => this.getFilePath(x).path === uri.path);
 
         if (!file && options.create) {
@@ -452,7 +453,6 @@ export class CreatioFS implements vscode.FileSystemProvider {
                     CreatioStatusBar.update("Error saving file");
                     return;
                 } else {
-                    this.writeToDisk(uri, content);
                     this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
                     file!.schemaMetaInfo.isChanged = true;
                     CreatioStatusBar.update("File saved");

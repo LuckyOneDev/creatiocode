@@ -239,7 +239,13 @@ export class CreatioClient {
 			maxTry: 5
 		});
 
-		if (response.response.statusCode !== 200) {
+		if (response.response.statusCode === 401) {
+			this.login();
+			response = await retryAsync(() => this.sendApiRequest(path, postData), {
+				delay: 100,
+				maxTry: 5
+			});
+		} else if (response.response.statusCode !== 200) {
 			console.error(response.body);
 			throw Error(response.response.statusMessage);
 		}
@@ -310,7 +316,7 @@ export class CreatioClient {
 		try {
 			response = await this.trySendApiRequest<GetSchemaResponse>(svcPath, payload);
 			return response.body.schema;
-		} 
+		}
 		catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return null;
