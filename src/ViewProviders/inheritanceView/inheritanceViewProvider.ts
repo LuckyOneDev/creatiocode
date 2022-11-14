@@ -13,7 +13,6 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
         return ['./src/ViewProviders/inheritanceView/inheritanceView.js/'];
     }
     schemas?: Schema[];
-    openedFromHereFlag = false;
     protected getStyles(): string {
         return this.getLoaderCSS() + `
         div {
@@ -30,7 +29,6 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     }
 
     protected onDidReceiveMessage(message: any): void {
-        this.openedFromHereFlag = true;
         let uri = CreatioFS.getInstance().getSchemaUri(message.id);
         vscode.workspace.openTextDocument(uri!).then(document => {
             vscode.window.showTextDocument(document);
@@ -67,13 +65,12 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
             return "Schema not selected";
         }
 
-        if (this.schemas && this.loadedSchema?.uId === this.currentShema.uId) {
-                return this.buildInheritanceTree(this.schemas);
-
-        } else {
-            this.loading = this.getParentSchemas(this.currentShema).then((schemas) => {
+        if (this.schemas && this.schemas.findIndex(x => x.uId === this.currentShema?.uId) !== -1) {
+            return this.buildInheritanceTree(this.schemas);
+        } else 
+        {
+            this.getParentSchemas(this.currentShema).then((schemas) => {
                 this.schemas = schemas;
-                this.loadedSchema = this.currentShema;
                 this.reloadWebview();
             });
             return `<span class="loader"></span>`;
@@ -91,11 +88,11 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     }
 
     setItem(schema: WorkSpaceItem): void {
-        if (!this.openedFromHereFlag) {
-            this.schemas = undefined;
-        }
-        this.openedFromHereFlag = false;
         this.currentShema = schema;
-        this.reloadWebview();
+        if (this.schemas && this.schemas.findIndex(x => x.uId === schema.uId) !== -1) {
+
+        } else {
+            this.reloadWebview();
+        }
     }
 }
