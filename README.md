@@ -31,11 +31,10 @@ Case
 
 ## Known Issues
 
-* Files won't load if opened before loading is complete
 * If current file is changed while loading updated version from server another file might be overwritten
+* File info and inheritance need to be reopened once to work propetly 
 * After changing settings workplace needs to be reloaded manually
-* File caching might throw an error on large packages
-* Sometimes metadata loads longer than expected
+* File caching might throw an error on larger packages
 
 ## Release Notes
 
