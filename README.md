@@ -20,6 +20,7 @@ Generate inheritance trees  (for js files)
 * File info and inheritance need to be reopened once to work propetly 
 * After changing settings workplace needs to be reloaded manually
 * File caching might throw an error on larger packages
+* File Info doesn't reload when info changes
 
 ## Release Notes
 

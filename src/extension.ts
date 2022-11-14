@@ -43,9 +43,10 @@ async function reloadWorkSpace(context: vscode.ExtensionContext) {
 	if (context.workspaceState.get("login-data")) {
 		fs.client = new CreatioClient(context.workspaceState.get("login-data"));
 		try {
-			await fs.client.connect();
+			if (!await fs.client.connect()) return false;
 			await fs.initFileSystem();
 		} catch (e) {
+			console.error(e);
 			vscode.window.showErrorMessage("Something went wrong. Please check your credentials and try again.");
 			return false;
 		}

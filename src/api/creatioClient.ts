@@ -192,7 +192,7 @@ export class CreatioClient {
 	}
 
 	async trySendClientPost<ResponseType extends CreatioResponse>(path: string, postData: any = null): Promise<ClientPostResponse<ResponseType>> {
-		let response = await this.sendClientPost(path, postData);
+		let response = await this.retryOperation(() => this.sendClientPost(path, postData), 25, 5);
 
 		if (response.response.statusCode !== 200) {
 			response.body = {};
@@ -290,8 +290,7 @@ export class CreatioClient {
 				throw new Error("Invalid schema type");
 		}
 
-		// response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
-		response = await this.retryOperation(() => this.trySendClientPost<GetSchemaResponse>(svcPath, payload), 25, 5);
+		response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
 		if (response?.body.schema) {
 			return response.body.schema;
 		} else {

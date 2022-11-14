@@ -7,8 +7,8 @@ export abstract class WorkspaceItemViewProvider extends CreatioWebViewProvider {
   currentShema?: WorkSpaceItem;
   constructor(context: vscode.ExtensionContext) {
     super(context);
-    vscode.workspace.onDidChangeTextDocument(x => {
-      if (x.document.uri.scheme === 'creatio') {
+    vscode.window.onDidChangeActiveTextEditor(x => {
+      if (x?.document.uri.scheme === 'creatio') {
         let file = CreatioFS.getInstance().getFile(x.document.uri);
         if (file) {
           this.setItem(file.schemaMetaInfo);
