@@ -12,22 +12,7 @@ See file metadata
 
 Restore files to svn version
 
-## Extension Settings
-
-This extension contributes the following settings:
-
-For FileTypes:
-ClientUnit,
-SourceCode,
-ProcessUserTask,
-SqlScript,
-Entity,
-Data,
-Process,
-Case
-
-* `creatiocode.fileTypes.<FileType>.Extension`: File extension for FileType
-* `creatiocode.fileTypes.<FileType>.Enabled`: Whether to show FileType in file explorer
+Generate inheritance trees  (for js files)
 
 ## Known Issues
 
@@ -43,3 +28,12 @@ First publish to VsCode extension marketplace
 
 Added basic edit/save functionality. 
 Added metadata view.
+
+### 0.2.0
+Added inheritance view
+
+### 0.2.1
+Added reconnect policy
+
+### 0.2.2
+Overall improvements to stability
