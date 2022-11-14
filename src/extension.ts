@@ -40,27 +40,29 @@ async function getInput(oldInput: any) {
 
 async function reloadWorkSpace(context: vscode.ExtensionContext) {
 	let fs = CreatioFS.getInstance();
-	if (context.workspaceState.get("login-data")) {
-		fs.client = new CreatioClient(context.workspaceState.get("login-data"));
-		try {
-			if (!await fs.client.connect()) return false;
+	let loginData: any = context.workspaceState.get("login-data");
+
+	// if there is a workplace already open for current login data
+	if (loginData && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0].uri.scheme === "creatio") {
+		fs.client = new CreatioClient(loginData);
+		let connected = await fs.client.login();
+		if (connected) {
 			await fs.initFileSystem();
-		} catch (e) {
-			console.error(e);
-			vscode.window.showErrorMessage("Something went wrong. Please check your credentials and try again.");
-			return false;
 		}
-		return true;
 	} else {
 		vscode.window.showErrorMessage("No workspace found");
-		return false;
 	}
 }
 
 async function createWorkspace(context: vscode.ExtensionContext) {
 	let input = await getInput(context.workspaceState.get('login-data'));
 	if (input) {
-		vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length, { uri: vscode.Uri.parse('creatio:/'), name: input.url });
+		vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length,
+			{
+				uri: vscode.Uri.parse('creatio:/'),
+				name: input.url
+			}
+		);
 		context.workspaceState.update('login-data', input);
 	}
 }

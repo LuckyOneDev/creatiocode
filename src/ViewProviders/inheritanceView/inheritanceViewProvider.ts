@@ -9,6 +9,7 @@ import { CreatioStatusBar } from '../../statusBar';
 export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     loading?: Promise<void>;
     loadedSchema?: WorkSpaceItem;
+    cancelationTokenSource = new vscode.CancellationTokenSource();
     protected getScripts(): string[] {
         return ['./src/ViewProviders/inheritanceView/inheritanceView.js/'];
     }
@@ -35,29 +36,28 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
         });
     }
 
-    protected async getParentSchemas(workSpaceItem: WorkSpaceItem, items?: Array<Schema>): Promise<Array<Schema>> {
-        if (items) {
-            let item = items[items.length - 1];
-            if (item.parent && item.parent.uId) {
-                let schemaData = await CreatioFS.getInstance().client?.getSchema(item.parent.uId, workSpaceItem.type);
-                if (schemaData) {
-                    items.push(schemaData);
-                    if (schemaData.parent?.uId) {
-                        return await this.getParentSchemas(workSpaceItem, items);
+    protected async getParentSchemas(workSpaceItem: WorkSpaceItem, token: vscode.CancellationToken): Promise<{ schemas: Array<Schema>, cancelled: boolean }> {
+        let items = [];
+        let client = CreatioFS.getInstance().client;
+        if (client) {
+            let first = await client.getSchema(workSpaceItem.uId, workSpaceItem.type);
+            if (first) {
+                items.push(first); 
+                while (items[items.length - 1].parent && token.isCancellationRequested === false) {
+                    let current: any = items[items.length - 1];
+                    let newSchema: Schema | null = await client.getSchema(current.parent.uId, workSpaceItem.type);
+                    if (newSchema) {
+                        items.push(newSchema);
+                    } else {
+                        break;
                     }
                 }
             }
-            return items;
-        } else {
-            items = [];
-            let schemaData = await CreatioFS.getInstance().client?.getSchema(workSpaceItem.uId, workSpaceItem.type);
-            if (schemaData) {
-                items.push(schemaData);
-                return this.getParentSchemas(workSpaceItem, items);
-            } else {
-                return items;
-            }
         }
+        return {
+            schemas: items,
+            cancelled: token.isCancellationRequested
+        };
     }
 
     protected getBody(): string {
@@ -67,11 +67,15 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
 
         if (this.schemas && this.schemas.findIndex(x => x.uId === this.currentShema?.uId) !== -1) {
             return this.buildInheritanceTree(this.schemas);
-        } else 
-        {
-            this.getParentSchemas(this.currentShema).then((schemas) => {
-                this.schemas = schemas;
-                this.reloadWebview();
+        } else {
+            this.cancelationTokenSource.cancel();
+            this.cancelationTokenSource = new vscode.CancellationTokenSource();
+            this.getParentSchemas(this.currentShema, this.cancelationTokenSource.token).then((resp) => {
+                this.schemas = resp.schemas;
+                if (!resp.cancelled) {
+                    this.reloadWebview();
+                    CreatioFS.getInstance().addSchemasToDisk(resp.schemas);
+                }
             });
             return `<span class="loader"></span>`;
         }
@@ -89,8 +93,11 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
 
     setItem(schema: WorkSpaceItem): void {
         this.currentShema = schema;
-        if (this.schemas && this.schemas.findIndex(x => x.uId === schema.uId) !== -1) {
-
+        if (this.schemas) {
+            if (this.schemas.findIndex(x => x.uId === schema.uId) === -1) {
+                this.schemas = undefined;
+                this.reloadWebview();
+            }
         } else {
             this.reloadWebview();
         }

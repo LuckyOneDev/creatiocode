@@ -3,15 +3,22 @@ import * as vscode from 'vscode';
 import * as http from 'http';
 import { ClientPostResponse, CreatioResponse, GetPackagesResponse, GetSchemaResponse, GetWorkspaceItemsResponse, PackageMetaInfo, SaveSchemaResponse, Schema, WorkSpaceItem, SchemaType, ReqestType } from './creatioInterfaces';
 import { CreatioStatusBar } from '../statusBar';
+import { retry, retryAsync } from 'ts-retry';
+import { createAsyncQueue } from './asyncQueue';
 
 export class CreatioClient {
 	readonly userAgent: string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36";
 
 	cookies: any;
 	credentials: any;
-	connected: boolean = false;
+	BPMCSRF: string = '';
+	private requestQueue = createAsyncQueue<any>();
 
-	getRequsetUrl(type: ReqestType) {
+	isConnected(): boolean {
+		return this.BPMCSRF !== '';
+	}
+
+	getRequestUrl(type: ReqestType): string {
 		switch (type) {
 			case ReqestType.getCurrentUserInfo: return '/0/ServiceModel/UserInfoService.svc/GetCurrentUserInfo';
 			case ReqestType.getApplicationInfo: return '/0/ServiceModel/ApplicationInfoService.svc/GetApplicationInfo';
@@ -47,15 +54,43 @@ export class CreatioClient {
 		}
 	}
 
-	async executeCreatioCommand<ResponseType extends CreatioResponse>(type: ReqestType, data: any) {
-		return await this.trySendClientPost<ResponseType>(this.getRequsetUrl(type), data);
+	async executeCreatioCommand<ResponseType extends CreatioResponse>(type: ReqestType, data: any): Promise<ResponseType | null> {
+		try {
+			if (type === ReqestType.login) {
+				return await this.tryLogin(data);
+			}
+			return this.requestQueue.push(async () => { return (await this.trySendApiRequest<ResponseType>(this.getRequestUrl(type), data)).body; });
+		} catch (err: any) {
+			console.error(err);
+			vscode.window.showErrorMessage(err.message);
+			return null;
+		}
+	}
+
+	private async tryLogin(data: any) {
+		let response: any = await retryAsync(() => this.post(this.getRequestUrl(ReqestType.login), data), {
+			delay: 250,
+			maxTry: 5
+		});
+
+		if (response.response.statusCode !== 200) {
+			console.error(response.body);
+			throw Error(response.response.statusMessage);
+		}
+
+		if (response.body.Code === 1) {
+			throw Error(response.body.Message);
+		}
+
+		this.setCookies(response.response.headers['set-cookie']);
+		return response;
 	}
 
 	constructor(credentials: any) {
 		this.credentials = credentials;
 	}
 
-	sendPost(path: string, postData: any = null): any {
+	private post(path: string, postData: any = null): any {
 		return new Promise((resolve, reject) => {
 			if (postData) { postData = JSON.stringify(postData); }
 
@@ -91,11 +126,11 @@ export class CreatioClient {
 		});
 	}
 
-	getBPMCSRF() {
+	getBPMCSRF(): string {
 		return this.cookies.find((x: any) => x.startsWith('BPMCSRF')).split(';')[0].split('=')[1];
 	}
 
-	sendClientPost(path: string, postData: any = null, contentType = 'application/json'): Promise<any> {
+	sendApiRequest(path: string, postData: any = null, contentType = 'application/json'): Promise<any> {
 		return new Promise((resolve, reject) => {
 			if (postData) { postData = JSON.stringify(postData); }
 
@@ -106,7 +141,7 @@ export class CreatioClient {
 				headers: {
 					'Accept': 'application/json, text/plain, */*',
 					'Content-Length': postData ? Buffer.byteLength(postData) : 0,
-					'BPMCSRF': this.getBPMCSRF(),
+					'BPMCSRF': this.BPMCSRF,
 					"User-Agent": this.userAgent,
 					"Cookie": this.cookies.join(';'),
 					"Content-Type": contentType
@@ -142,26 +177,28 @@ export class CreatioClient {
 		});
 	}
 
-	async connect(): Promise<boolean> {
+	setCookies(cookies: any) {
+		this.cookies = cookies;
+		this.BPMCSRF = this.getBPMCSRF();
+	}
+
+	async login(): Promise<boolean> {
 		const postData = {
 			"UserName": this.credentials.login,
 			"UserPassword": this.credentials.password
 		};
-		let response = await this.sendPost('/ServiceModel/AuthService.svc/Login', postData);
-		this.cookies = response.response.headers['set-cookie'];
-		let flag = response.body.Message === "";
-		if (flag) {
+		let response = await this.executeCreatioCommand(ReqestType.login, postData);
+		if (response) {
 			CreatioStatusBar.update('Connected to Creatio');
+			return true;
 		} else {
-			vscode.window.showErrorMessage('Invalid login or password');
+			return false;
 		}
-		this.connected = flag;
-		return flag;
 	}
 
 	async getCurrentUserInfo() {
 		try {
-			return await this.sendClientPost(this.getRequsetUrl(ReqestType.getCurrentUserInfo));
+			return await this.sendApiRequest(this.getRequestUrl(ReqestType.getCurrentUserInfo));
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -170,7 +207,7 @@ export class CreatioClient {
 
 	async getApplicationInfo() {
 		try {
-			return await this.sendClientPost(this.getRequsetUrl(ReqestType.getApplicationInfo));
+			return await this.sendApiRequest(this.getRequestUrl(ReqestType.getApplicationInfo));
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -178,7 +215,7 @@ export class CreatioClient {
 	}
 
 	async getPackages(): Promise<Array<PackageMetaInfo>> {
-		let response = await this.trySendClientPost<GetPackagesResponse>(this.getRequsetUrl(ReqestType.getPackages));
+		let response = await this.trySendApiRequest<GetPackagesResponse>(this.getRequestUrl(ReqestType.getPackages));
 		return response ? response.body.packages.map((x: any) => { return x; }) : [];
 	}
 
@@ -191,38 +228,39 @@ export class CreatioClient {
 		return true;
 	}
 
-	async trySendClientPost<ResponseType extends CreatioResponse>(path: string, postData: any = null): Promise<ClientPostResponse<ResponseType>> {
-		let response = await this.retryOperation(() => this.sendClientPost(path, postData), 25, 5);
+	async trySendApiRequest<ResponseType extends CreatioResponse>(path: string, postData: any = null): Promise<ClientPostResponse<ResponseType>> {
+		if (!this.cookies || this.cookies.length === 0 || this.isConnected() === false) {
+			// reconnect
+			this.login();
+		}
+
+		let response = await retryAsync(() => this.sendApiRequest(path, postData), {
+			delay: 100,
+			maxTry: 5
+		});
 
 		if (response.response.statusCode !== 200) {
-			response.body = {};
-			response.body.errorInfo = {
-				errorCode: "http:" + response.response.statusCode,
-				message: response.response.statusMessage,
-				stackTrace: ""
-			};
-			response.body.success = false;
-			return response;
+			console.error(response.body);
+			throw Error(response.response.statusMessage);
 		}
 
 		if (!this.isJSON(response.body)) {
 			console.error(response.body);
-			response.body = {};
-			response.body.errorInfo = {
-				errorCode: "JSON",
-				message: "Provided response is not a valid JSON string. See console for details.",
-				stackTrace: ""
-			};
-			response.body.success = false;
-			return response;
+			throw Error("Provided response is not a valid JSON string. See console for details.");
 		}
 
 		response.body = JSON.parse(response.body);
+
+		if (response.body.success === false) {
+			console.error(response.body);
+			throw Error(response.body.errorInfo.message);
+		}
+
 		return response as ClientPostResponse<ResponseType>;
 	}
 
 	async getWorkspaceItems(): Promise<Array<WorkSpaceItem>> {
-		let response = await this.trySendClientPost<GetWorkspaceItemsResponse>('/0/ServiceModel/WorkspaceExplorerService.svc/GetWorkspaceItems');
+		let response = await this.trySendApiRequest<GetWorkspaceItemsResponse>('/0/ServiceModel/WorkspaceExplorerService.svc/GetWorkspaceItems');
 		return response ? response.body.items : [];
 	}
 
@@ -230,31 +268,12 @@ export class CreatioClient {
 		const payload = {
 			"script": sql
 		};
-		let response = await this.trySendClientPost<CreatioResponse>('/0/DataService/json/SyncReply/SelectQuery', payload);
+		let response = await this.trySendApiRequest<CreatioResponse>('/0/DataService/json/SyncReply/SelectQuery', payload);
 		return response?.body;
 	}
 	async revertElements(schemas: Array<WorkSpaceItem>): Promise<CreatioResponse | undefined> {
-		let response = await this.trySendClientPost<CreatioResponse>('/0/ServiceModel/SourceControlService.svc/RevertElements', schemas);
+		let response = await this.trySendApiRequest<CreatioResponse>('/0/ServiceModel/SourceControlService.svc/RevertElements', schemas);
 		return response?.body;
-	}
-
-	wait(ms: number) {
-		return new Promise(r => setTimeout(r, ms));
-	}
-
-	retryOperation<T>(operation: () => Promise<T>, delay: number, retries: number): Promise<T> {
-		return new Promise((resolve, reject) => {
-			return  operation()
-				.then(resolve)
-				.catch((reason: any) => {
-					if (retries > 0) {
-						return this.wait(delay)
-							.then(this.retryOperation.bind(null, operation, delay, retries - 1))
-							.catch(reject);
-					}
-					return reject(reason);
-				});
-		});
 	}
 
 	async getSchema(schemaUId: string, type: SchemaType): Promise<Schema | null> {
@@ -280,27 +299,27 @@ export class CreatioClient {
 				break;
 			case SchemaType.entity:
 				svcPath = '/0/ServiceModel/EntitySchemaDesignerService.svc/GetSchema';
-				response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
-				return response.body.schema;
+				break;
 			case SchemaType.data:
 				svcPath = '/0/ServiceModel/SchemaDataDesignerService.svc/GetSchema';
-				response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
-				return response.body.schema;
+				break;
 			default:
-				throw new Error("Invalid schema type");
+				return null; //throw new Error("Invalid schema type");
 		}
 
-		response = await this.trySendClientPost<GetSchemaResponse>(svcPath, payload);
-		if (response?.body.schema) {
+		try {
+			response = await this.trySendApiRequest<GetSchemaResponse>(svcPath, payload);
 			return response.body.schema;
-		} else {
-			throw new Error("Invalid schema response");
+		} 
+		catch (err: any) {
+			vscode.window.showErrorMessage(err.message);
+			return null;
 		}
 	}
 
 	async build() {
 		try {
-			return await this.sendClientPost('/0/ServiceModel/WorkspaceExplorerService.svc/Build');
+			return await this.sendApiRequest('/0/ServiceModel/WorkspaceExplorerService.svc/Build');
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -317,7 +336,7 @@ export class CreatioClient {
 			"packageName": packageName,
 		};
 		try {
-			return await this.sendClientPost('/0/ServiceModel/SourceControlService.svc/GetPackageState', postData);
+			return await this.sendApiRequest('/0/ServiceModel/SourceControlService.svc/GetPackageState', postData);
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -334,7 +353,7 @@ export class CreatioClient {
 			"packageName": packageName,
 		};
 		try {
-			return await this.sendClientPost('/0/ServiceModel/SourceControlService.svc/Update', postData);
+			return await this.sendApiRequest('/0/ServiceModel/SourceControlService.svc/Update', postData);
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -343,7 +362,7 @@ export class CreatioClient {
 
 	async exportSchema(schemaDatas: Array<any>) {
 		try {
-			return await this.sendClientPost('/0/ServiceModel/SourceControlService.svc/GetPackageState', schemaDatas);
+			return await this.sendApiRequest('/0/ServiceModel/SourceControlService.svc/GetPackageState', schemaDatas);
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -356,7 +375,7 @@ export class CreatioClient {
 	 */
 	async getRepositories() {
 		try {
-			return await this.sendClientPost('/0/ServiceModel/SourceControlService.svc/GetRepositories');
+			return await this.sendApiRequest('/0/ServiceModel/SourceControlService.svc/GetRepositories');
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -368,7 +387,7 @@ export class CreatioClient {
 			"sysSettingsNameCollection": settingNames
 		};
 		try {
-			return await this.sendClientPost('/0/DataService/json/SyncReply/QuerySysSettings', postData);
+			return await this.sendApiRequest('/0/DataService/json/SyncReply/QuerySysSettings', postData);
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -382,7 +401,7 @@ export class CreatioClient {
 			schemaType: schemaType
 		};
 		try {
-			return await this.sendClientPost('/0/ServiceModel/SchemaMetaDataService.svc/GetSchemaMetaData', postData);
+			return await this.sendApiRequest('/0/ServiceModel/SchemaMetaDataService.svc/GetSchemaMetaData', postData);
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -397,7 +416,7 @@ export class CreatioClient {
 		};
 
 		try {
-			return await this.sendClientPost('/0/DataService/json/SyncReply/QuerySysSettings', postData);
+			return await this.sendApiRequest('/0/DataService/json/SyncReply/QuerySysSettings', postData);
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -413,14 +432,13 @@ export class CreatioClient {
 		}
 	}
 
-	async saveSchema(schema: Schema): Promise<SaveSchemaResponse> {
-		let response = await this.trySendClientPost<SaveSchemaResponse>('/0/ServiceModel/ClientUnitSchemaDesignerService.svc/SaveSchema', schema);
-		return response.body;
+	async saveSchema(schema: Schema): Promise<SaveSchemaResponse | null> {
+		return await this.executeCreatioCommand<SaveSchemaResponse>(ReqestType.saveSchema, schema);
 	}
 
 	async getAvailableReferenceSchemas(id: string) {
 		try {
-			return await this.sendClientPost('/0/ServiceModel/EntitySchemaDesignerService.svc/GetAvailableReferenceSchemas', id);
+			return await this.sendApiRequest('/0/ServiceModel/EntitySchemaDesignerService.svc/GetAvailableReferenceSchemas', id);
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -429,7 +447,7 @@ export class CreatioClient {
 
 	async getPackageProperties(id: string) {
 		try {
-			return await this.sendClientPost('/0/ServiceModel/PackageService.svc/GetPackageProperties', id);
+			return await this.sendApiRequest('/0/ServiceModel/PackageService.svc/GetPackageProperties', id);
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;

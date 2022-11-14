@@ -54,6 +54,15 @@ export class Directory implements vscode.FileStat {
 export type Entry = File | Directory;
 
 export class CreatioFS implements vscode.FileSystemProvider {
+    addSchemasToDisk(schemas: Schema[]) {
+        schemas.forEach(x => {
+            let uri = this.getSchemaUri(x.uId);
+            if (uri) {
+                this.writeToDisk(uri, x.body);
+            }
+        });
+    }
+    
     getSchemaUri(uId: string): vscode.Uri | undefined {
         let file = this.files.find(x => x.schemaMetaInfo.uId === uId);
         return file?.schemaMetaInfo.uId ? this.getFilePath(file) : undefined;
@@ -317,18 +326,18 @@ export class CreatioFS implements vscode.FileSystemProvider {
 
 
     async initFileSystem() {
-        if (this.client?.connected && this.client.connected) {
+        if (this.client && this.client.isConnected()) {
             CreatioStatusBar.animate("Loading files");
             this.folders = (await this.client.getPackages()).map(x => new Directory(x.name, x));
             if (this.folders.length === 0) {
-                vscode.window.showErrorMessage("Something went wrong. No packages found");
+                vscode.window.showErrorMessage("No available packages found");
                 CreatioStatusBar.update("Error");
                 return;
             }
 
             this.files = (await this.client.getWorkspaceItems()).map(x => new File(this.getFileWithExtension(x), x));
             if (this.files.length === 0) {
-                vscode.window.showErrorMessage("Something went wrong. No schemas found");
+                vscode.window.showErrorMessage("No available schemas found");
                 CreatioStatusBar.update("Error");
                 return;
             }
@@ -439,8 +448,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
             file.schema.body = content.toString();
             CreatioStatusBar.animate("Saving file");
             return this.client?.saveSchema(file.schema).then(response => {
-                if (!response.success) {
-                    vscode.window.showErrorMessage(response.errorInfo.message);
+                if (!response) {
                     CreatioStatusBar.update("Error saving file");
                     return;
                 } else {
@@ -464,7 +472,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
     delete(uri: vscode.Uri): void {
         let file = this.files.find(x => this.getFilePath(x).path === uri.path);
 
-        if (this.client?.connected) {
+        if (this.client && this.client.isConnected()) {
             if (file) {
                 this.client.deleteSchema([file.schemaMetaInfo.id]);
                 this._fireSoon({ type: vscode.FileChangeType.Deleted, uri });
