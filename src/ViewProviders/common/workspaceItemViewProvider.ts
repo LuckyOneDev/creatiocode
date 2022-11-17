@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { CreatioFS } from '../fileSystemProvider';
-import { WorkSpaceItem } from '../api/creatioInterfaces';
+import { CreatioFS } from '../../fs/fileSystemProvider';
+import { WorkSpaceItem } from '../../api/creatioTypes';
 import { CreatioWebViewProvider } from './creatioWebViewProvider';
 
 export abstract class WorkspaceItemViewProvider extends CreatioWebViewProvider {
@@ -24,16 +24,6 @@ export abstract class WorkspaceItemViewProvider extends CreatioWebViewProvider {
         }
       }
     });
-    
-
-    // let textEditor = vscode.window.activeTextEditor;
-    // if (textEditor && textEditor.document.uri === vscode.Uri.parse("creatio:/")) {
-    //   let fs = CreatioFS.getInstance();
-    //   let file = fs.getFile(textEditor.document.uri);
-    //   if (file?.schemaMetaInfo) {
-    //     this.currentShema = file.schemaMetaInfo;
-    //   }
-    // }
   }
 
   setItem(schema: WorkSpaceItem): void {

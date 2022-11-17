@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import * as http from 'http';
-import { ClientPostResponse, CreatioResponse, GetPackagesResponse, GetSchemaResponse, GetWorkspaceItemsResponse, PackageMetaInfo, SaveSchemaResponse, Schema, WorkSpaceItem, SchemaType, ReqestType } from './creatioInterfaces';
-import { CreatioStatusBar } from '../statusBar';
+import { ClientPostResponse, CreatioResponse, GetPackagesResponse, GetSchemaResponse, GetWorkspaceItemsResponse, PackageMetaInfo, SaveSchemaResponse, Schema, WorkSpaceItem, SchemaType, ReqestType } from './creatioTypes';
+import { CreatioStatusBar } from '../common/statusBar';
 import { retry, retryAsync } from 'ts-retry';
 import { createAsyncQueue } from './asyncQueue';
 

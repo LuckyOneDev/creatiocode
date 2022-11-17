@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import { CreatioClient } from './api/creatioClient';
-import { CreatioFS } from './fileSystemProvider';
-import { CreatioStatusBar } from './statusBar';
+import { CreatioFS } from './fs/fileSystemProvider';
+import { CreatioStatusBar } from './common/statusBar';
 import { SchemaMetaDataViewProvider } from './ViewProviders/schemaMetaDataViewProvider';
-import { InheritanceViewProvider } from './ViewProviders/inheritanceView/inheritanceViewProvider';
-import { SearchViewProvider } from './ViewProviders/searchView/searchViewProvider';
+import { InheritanceViewProvider } from './ViewProviders/inheritanceViewProvider';
 
 async function getInput(oldInput: any) {
 	const url = await vscode.window.showInputBox({
@@ -126,6 +125,27 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.registerWebviewViewProvider("creatioInheritance", new InheritanceViewProvider(context))
 	);
 
+	context.subscriptions.push(
+		vscode.commands.registerCommand("creatiocode.schemaTreeViewer.reveal", (location) => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor || !location) {
+				return;
+			}
+	
+			var start = new vscode.Position(
+				location.start.line - 1,
+				location.start.column,
+			);
+			var end = new vscode.Position(
+				location.end.line - 1,
+				location.end.column,
+			);
+	
+			editor.selection = new vscode.Selection(start, end);
+			editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+		})
+	);
+	
 	// context.subscriptions.push(
 	// 	vscode.window.registerWebviewViewProvider("creatiocodeSearchView", new SearchViewProvider(context))
 	// );

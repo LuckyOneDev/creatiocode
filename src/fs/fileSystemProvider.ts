@@ -3,9 +3,9 @@ import * as vscode from 'vscode';
 import * as os from 'os';
 import * as fs from 'fs';
 
-import { CreatioClient } from './api/creatioClient';
-import { PackageMetaInfo, Schema, WorkSpaceItem, SchemaType } from './api/creatioInterfaces';
-import { CreatioStatusBar } from './statusBar';
+import { CreatioClient } from '../api/creatioClient';
+import { PackageMetaInfo, Schema, WorkSpaceItem, SchemaType } from '../api/creatioTypes';
+import { CreatioStatusBar } from '../common/statusBar';
 
 export class File implements vscode.FileStat {
 

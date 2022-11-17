@@ -1,0 +1,10 @@
+div {
+    cursor: pointer;
+    width: 100%;
+}
+div:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+div.selected {
+    background-color: var(--vscode-list-activeSelectionBackground);
+}

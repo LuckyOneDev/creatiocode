@@ -1,33 +1,17 @@
-import { CreatioWebViewProvider } from '../creatioWebViewProvider';
 import * as vscode from 'vscode';
-import { CreatioFS } from '../../fileSystemProvider';
-import { Schema, WorkSpaceItem } from '../../api/creatioInterfaces';
-import { WorkspaceItemViewProvider } from '../workspaceItemViewProvider';
-import { CreatioClient } from '../../api/creatioClient';
-import { CreatioStatusBar } from '../../statusBar';
+import { CreatioFS } from '../fs/fileSystemProvider';
+import { Schema, WorkSpaceItem } from '../api/creatioTypes';
+import { WorkspaceItemViewProvider } from './common/workspaceItemViewProvider';
 
 export class InheritanceViewProvider extends WorkspaceItemViewProvider {
+    scripts = ['inheritanceView.js'];
+    styles = ['loader.css', 'inheritanceView.css'];
+
     loading?: Promise<void>;
     loadedSchema?: WorkSpaceItem;
     cancelationTokenSource = new vscode.CancellationTokenSource();
-    protected getScripts(): string[] {
-        return ['./src/ViewProviders/inheritanceView/inheritanceView.js/'];
-    }
+    
     schemas?: Schema[];
-    protected getStyles(): string {
-        return this.getLoaderCSS() + `
-        div {
-            cursor: pointer;
-            width: 100%;
-        }
-        div:hover {
-            background-color: var(--vscode-list-hoverBackground);
-        }
-        div.selected {
-            background-color: var(--vscode-list-activeSelectionBackground);
-        }
-        `;
-    }
 
     protected onDidReceiveMessage(message: any): void {
         let uri = CreatioFS.getInstance().getSchemaUri(message.id);
@@ -66,7 +50,7 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
         }
 
         if (this.schemas && this.schemas.findIndex(x => x.uId === this.currentShema?.uId) !== -1) {
-            return this.buildInheritanceTree(this.schemas);
+            return this.buildInheritanceTree();
         } else {
             this.cancelationTokenSource.cancel();
             this.cancelationTokenSource = new vscode.CancellationTokenSource();
@@ -83,10 +67,14 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
 
     }
 
-    buildInheritanceTree(schemas: Schema[]): string {
+    buildInheritanceTree(): string {
+        if (!this.schemas) {
+            return "";
+        }
+
         let html = "";
-        for (let i = 0; i < schemas.length; i++) {
-            html += `<div id = ${schemas[i].uId}>${schemas[i].name} (${schemas[i].package?.name})</div>`;
+        for (let i = 0; i < this.schemas.length; i++) {
+            html += `<div id = ${this.schemas[i].uId}>${this.schemas[i].name} (${this.schemas[i].package?.name})</div>`;
         }
         return html;
     }

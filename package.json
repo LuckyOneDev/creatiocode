@@ -5,7 +5,7 @@
   "version": "0.2.4",
   "repository": "https://github.com/LuckyOneDev/creatiocode",
   "publisher": "LuckyOne",
-  "icon": "images/icon.png",
+  "icon": "resources/media/icon.png",
   "engines": {
     "vscode": "^1.72.0"
   },
@@ -28,14 +28,6 @@
         "title": "Reload Creatio workspace"
       },
       {
-        "command": "creatioView.refreshEntry",
-        "title": "Refresh",
-        "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
-        }
-      },
-      {
         "command": "creatiocode.cacheFolder",
         "title": "Cache package"
       },
@@ -46,7 +38,11 @@
       {
         "command": "creatiocode.revertSchema",
         "title": "Pull schema from SVN"
-      }
+      },
+      {
+				"command": "creatiocode.schemaTreeViewer.reveal",
+				"title": "Schema Tree Viewer Reveal"
+			}
     ],
     "menus": {
       "explorer/context": [
@@ -59,15 +55,6 @@
           "when": "resource =~ /creatio/ && !explorerResourceReadonly && !explorerResourceIsFolder",
           "command": "creatiocode.revertSchema",
           "group": "navigation"
-        }
-      ]
-    },
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "creatiocode-search",
-          "title": "Creatio Search",
-          "icon": "media/dep.svg"
         }
       ]
     },
@@ -84,13 +71,6 @@
           "type": "webview",
           "id": "creatioInheritance",
           "name": "Creatio: File Inheritance"
-        }
-      ],
-      "creatiocode-search": [
-        {
-          "type": "webview",
-          "id": "creatiocodeSearchView",
-          "name": "Search"
         }
       ]
     },

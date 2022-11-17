@@ -1,27 +1,8 @@
-import * as vscode from 'vscode';
-import { CreatioFS } from '../fileSystemProvider';
-import { WorkSpaceItem } from '../api/creatioInterfaces';
-import { CreatioWebViewProvider } from './creatioWebViewProvider';
-import { WorkspaceItemViewProvider } from './workspaceItemViewProvider';
+import { WorkSpaceItem } from '../api/creatioTypes';
+import { WorkspaceItemViewProvider } from './common/workspaceItemViewProvider';
 
 export class SchemaMetaDataViewProvider extends WorkspaceItemViewProvider {
-  protected getScripts(): string[] {
-    return [];
-  }
-  protected onDidReceiveMessage(message: any): void {
-    return;
-  }
-  
-  protected getStyles(): string {
-    return `
-    table {
-      width: 100%;
-    }
-    tr:nth-child(odd) {
-      background-color: var(--vscode-editor-background);
-    }    
-    `;
-  }
+  styles = ['schemaMetaDataView.css'];
 
   protected getBody(): string {
     if (!this.currentShema) {
