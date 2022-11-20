@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
-import { CreatioClient } from './api/creatioClient';
+import { ConnectionInfo, CreatioClient } from './api/creatioClient';
 import { CreatioFS } from './fs/fileSystemProvider';
 import { CreatioStatusBar } from './common/statusBar';
 import { SchemaMetaDataViewProvider } from './ViewProviders/schemaMetaDataViewProvider';
 import { InheritanceViewProvider } from './ViewProviders/inheritanceViewProvider';
+import { SchemaStructureDefinitionProvider, StructureViewProvider } from './ViewProviders/structureViewProvider';
+import { LoginPanelProvider } from './ViewProviders/loginPage';
 
-async function getInput(oldInput: any) {
+async function getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
 	const url = await vscode.window.showInputBox({
 		title: 'Creatio url',
 		value: oldInput?.url || "baseurl"
@@ -30,19 +32,16 @@ async function getInput(oldInput: any) {
 		return undefined;
 	}
 
-	return {
-		url: url,
-		login: login,
-		password: password
-	};
+	return new ConnectionInfo(url, login, password);
 }
 
 async function reloadWorkSpace(context: vscode.ExtensionContext) {
 	let fs = CreatioFS.getInstance();
-	let loginData: any = context.workspaceState.get("login-data");
+	let loginData: ConnectionInfo | undefined = context.workspaceState.get("login-data");
 
 	// if there is a workplace already open for current login data
 	if (loginData && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0].uri.scheme === "creatio") {
+		loginData = new ConnectionInfo(loginData.url, loginData.login, loginData.password);
 		fs.client = new CreatioClient(loginData);
 		let connected = await fs.client.login();
 		if (connected) {
@@ -54,16 +53,19 @@ async function reloadWorkSpace(context: vscode.ExtensionContext) {
 }
 
 async function createWorkspace(context: vscode.ExtensionContext) {
-	let input = await getInput(context.workspaceState.get('login-data'));
-	if (input) {
-		vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length,
-			{
-				uri: vscode.Uri.parse('creatio:/'),
-				name: input.url
-			}
-		);
-		context.workspaceState.update('login-data', input);
-	}
+	// let input = await getInput(context.workspaceState.get('login-data'));
+	// if (input) {
+		// vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length,
+		// 	{
+		// 		uri: vscode.Uri.parse('creatio:/'),
+		// 		name: input.getHostName()
+		// 	}
+		// );
+		// context.workspaceState.update('login-data', input);
+	// }
+
+	let panelProvider = new LoginPanelProvider(context);
+
 }
 
 function registerFileSystem(context: vscode.ExtensionContext) {
@@ -90,7 +92,7 @@ function registerContextMenus(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.revertSchema', async function (file: vscode.Uri) {
 		let fs = CreatioFS.getInstance();
-		await fs.revertSchema(file);
+		await fs.restoreSchema(file);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.clearCache', async function () {
@@ -126,12 +128,16 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
+		vscode.window.registerTreeDataProvider("creatiocode.view.schemaTreeViewer", new StructureViewProvider())
+	);
+
+	context.subscriptions.push(
 		vscode.commands.registerCommand("creatiocode.schemaTreeViewer.reveal", (location) => {
 			const editor = vscode.window.activeTextEditor;
 			if (!editor || !location) {
 				return;
 			}
-	
+
 			var start = new vscode.Position(
 				location.start.line - 1,
 				location.start.column,
@@ -140,15 +146,15 @@ export function activate(context: vscode.ExtensionContext) {
 				location.end.line - 1,
 				location.end.column,
 			);
-	
+
 			editor.selection = new vscode.Selection(start, end);
 			editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
 		})
 	);
-	
-	// context.subscriptions.push(
-	// 	vscode.window.registerWebviewViewProvider("creatiocodeSearchView", new SearchViewProvider(context))
-	// );
+
+	context.subscriptions.push(
+		vscode.languages.registerDefinitionProvider('javascript', SchemaStructureDefinitionProvider.getInstance())
+	);
 
 	CreatioStatusBar.show('Creatio not initialized');
 }
