@@ -5,14 +5,39 @@ import { ClientPostResponse, CreatioResponse, GetPackagesResponse, GetSchemaResp
 import { CreatioStatusBar } from '../common/statusBar';
 import { retry, retryAsync } from 'ts-retry';
 import { createAsyncQueue } from './asyncQueue';
+import * as dns from 'dns';
+
+export class ConnectionInfo {
+	url: string;
+	login: string;
+	password: string;
+
+	private hostURL: URL;
+
+	constructor(url: string, login: string, password: string) {
+		this.url = url;
+		this.login = login;
+		this.password = password;
+		this.hostURL = new URL(this.url);
+	}
+
+	public getHostName(): string {
+		return this.hostURL.hostname;
+	}
+
+	public getPort(): string {
+		return this.hostURL.port;
+	}
+}
 
 export class CreatioClient {
 	readonly userAgent: string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36";
+	private requestQueue = createAsyncQueue<any>();
 
 	cookies: any;
-	credentials: any;
 	BPMCSRF: string = '';
-	private requestQueue = createAsyncQueue<any>();
+	credentials: ConnectionInfo;
+	
 
 	isConnected(): boolean {
 		return this.BPMCSRF !== '';
@@ -62,14 +87,14 @@ export class CreatioClient {
 			return this.requestQueue.push(async () => { return (await this.trySendApiRequest<ResponseType>(this.getRequestUrl(type), data)).body; });
 		} catch (err: any) {
 			console.error(err);
-			vscode.window.showErrorMessage(err.message);
+			vscode.window.showErrorMessage(err.message || err.body);
 			return null;
 		}
 	}
 
 	private async tryLogin(data: any) {
 		let response: any = await retryAsync(() => this.post(this.getRequestUrl(ReqestType.login), data), {
-			delay: 250,
+			delay: 50,
 			maxTry: 5
 		});
 
@@ -86,16 +111,20 @@ export class CreatioClient {
 		return response;
 	}
 
-	constructor(credentials: any) {
+	constructor(credentials: ConnectionInfo) {
 		this.credentials = credentials;
+	}
+
+	getBPMCSRF(): string {
+		return this.cookies.find((x: any) => x.startsWith('BPMCSRF')).split(';')[0].split('=')[1];
 	}
 
 	private post(path: string, postData: any = null): any {
 		return new Promise((resolve, reject) => {
 			if (postData) { postData = JSON.stringify(postData); }
 
-			const options = {
-				host: this.credentials.url,
+			const options: http.RequestOptions = {
+				host: this.credentials.getHostName(),
 				path: path,
 				method: 'POST',
 				headers: {
@@ -105,6 +134,10 @@ export class CreatioClient {
 				}
 			};
 
+			if (this.credentials.getPort() !== '') {
+				options.port = this.credentials.getPort();
+			}
+
 			const req = http.request(options, (response) => {
 				var str = '';
 				response.on('data', function (chunk) {
@@ -112,10 +145,18 @@ export class CreatioClient {
 				});
 
 				response.on('end', function () {
-					resolve({
-						response: response,
-						body: JSON.parse(str)
-					});
+					try {
+						let body = JSON.parse(str);
+						resolve({
+							response: response,
+							body: body
+						});
+					} catch (err) {
+						reject({
+							response: response,
+							body: str
+						});
+					}
 				});
 			});
 
@@ -126,16 +167,12 @@ export class CreatioClient {
 		});
 	}
 
-	getBPMCSRF(): string {
-		return this.cookies.find((x: any) => x.startsWith('BPMCSRF')).split(';')[0].split('=')[1];
-	}
-
 	sendApiRequest(path: string, postData: any = null, contentType = 'application/json'): Promise<any> {
 		return new Promise((resolve, reject) => {
 			if (postData) { postData = JSON.stringify(postData); }
 
-			var options = {
-				host: this.credentials.url,
+			var options: http.RequestOptions = {
+				host: this.credentials.getHostName(),
 				path: path,
 				method: 'POST',
 				headers: {
@@ -145,10 +182,12 @@ export class CreatioClient {
 					"User-Agent": this.userAgent,
 					"Cookie": this.cookies.join(';'),
 					"Content-Type": contentType
-				},
-				mode: "cors",
-				credentials: "include"
+				}
 			};
+
+			if (this.credentials.getPort() !== '') {
+				options.port = this.credentials.getPort();
+			}
 
 			const req = http.request(options, (response) => {
 				var str = '';

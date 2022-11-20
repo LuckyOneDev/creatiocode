@@ -10,14 +10,17 @@ class DOMSelector {
 window.onload = function () {
     const vscode = acquireVsCodeApi();
     let divs = document.getElementsByTagName('div');
-    DOMSelector.select(divs[0]);
+    let currentSchema = vscode.postMessage({
+        command: 'getCurrentSchema'
+    });
+    DOMSelector.select(document.getElementById(currentSchema));
     for (let i = 0; i < divs.length; i++) {
         divs[i].addEventListener('click', function () {
             DOMSelector.select(divs[i]);
-            let message = {
+            vscode.postMessage({
+                command: 'openSchema',
                 id: divs[i].id
-            };
-            vscode.postMessage(message);
+            });
         });
     }
 };

@@ -9,7 +9,11 @@ export abstract class CreatioWebViewProvider implements vscode.WebviewViewProvid
   context: vscode.ExtensionContext;
   protected webviewView?: vscode.WebviewView;
   protected onDidReceiveMessage(message: any): void {};
-
+  protected postMessage(message: any) {
+    if (this.webviewView) {
+      this.webviewView.webview.postMessage(message);
+    }
+  }
   protected styles: Array<string> = [];
   protected scripts: Array<string> = [];
 
