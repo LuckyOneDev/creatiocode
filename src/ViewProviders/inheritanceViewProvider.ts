@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { CreatioFS } from '../fs/fileSystemProvider';
 import { Schema, WorkSpaceItem } from '../api/creatioTypes';
 import { WorkspaceItemViewProvider } from './common/workspaceItemViewProvider';
+import { FileSystemHelper } from '../fs/fsHelper';
 
 export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     scripts = ['inheritanceView.js'];
@@ -31,8 +32,24 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     protected async getParentSchemas(workSpaceItem: WorkSpaceItem, token: vscode.CancellationToken): Promise<{ schemas: Array<Schema>, cancelled: boolean }> {
         let items = [];
         let client = CreatioFS.getInstance().client;
+
+        let alikeSchemas = CreatioFS.getInstance().getUriByName(workSpaceItem.name);
+
         if (client) {
-            let first = await client.getSchema(workSpaceItem.uId, workSpaceItem.type);
+            let loadedSchemas = alikeSchemas.map(async uri => {
+                if (!token.isCancellationRequested) {
+                    return await CreatioFS.getInstance().getFile(uri);
+                }
+            });
+
+            if (token.isCancellationRequested) {
+                return {
+                    schemas: [],
+                    cancelled: token.isCancellationRequested
+                }; 
+            }
+
+            // let first = await client.getSchema(workSpaceItem.uId, workSpaceItem.type);
             if (first) {
                 items.push(first);
                 while (items[items.length - 1].parent && token.isCancellationRequested === false) {
@@ -55,7 +72,7 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     protected getBody(): string {
         if (!this.currentShema) {
             return "Schema not selected";
-        }
+        }   
 
         if (this.schemas && this.schemas.findIndex(x => x.uId === this.currentShema?.uId) !== -1) {
             return this.buildInheritanceTree();
@@ -66,7 +83,7 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
                 this.schemas = resp.schemas;
                 if (!resp.cancelled) {
                     this.reloadWebview();
-                    CreatioFS.getInstance().addSchemasToDisk(resp.schemas);
+                    FileSystemHelper.writeFiles(resp.schemas);
                 }
             });
             return `<span class="loader"></span>`;

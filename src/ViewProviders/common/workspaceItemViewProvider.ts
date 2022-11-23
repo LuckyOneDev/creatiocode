@@ -11,7 +11,7 @@ export abstract class WorkspaceItemViewProvider extends CreatioWebViewProvider {
       if (x?.document.uri.scheme === 'creatio') {
         let file = CreatioFS.getInstance().getFile(x.document.uri);
         if (file) {
-          this.setItem(file.schemaMetaInfo);
+          this.setItem(file.workSpaceItem);
         }
       }
     });
@@ -20,7 +20,7 @@ export abstract class WorkspaceItemViewProvider extends CreatioWebViewProvider {
       if (x.uri.scheme === 'creatio') {
         let file = CreatioFS.getInstance().getFile(x.uri);
         if (file) {
-          this.setItem(file.schemaMetaInfo);
+          this.setItem(file.workSpaceItem);
         }
       }
     });

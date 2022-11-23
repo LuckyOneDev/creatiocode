@@ -6,6 +6,7 @@ import { SchemaMetaDataViewProvider } from './ViewProviders/schemaMetaDataViewPr
 import { InheritanceViewProvider } from './ViewProviders/inheritanceViewProvider';
 import { SchemaStructureDefinitionProvider, StructureViewProvider } from './ViewProviders/structureViewProvider';
 import { LoginPanelProvider } from './ViewProviders/loginPage';
+import { ConfigHelper } from './common/configurationHelper';
 
 async function getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
 	const url = await vscode.window.showInputBox({
@@ -35,37 +36,62 @@ async function getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
 	return new ConnectionInfo(url, login, password);
 }
 
-async function reloadWorkSpace(context: vscode.ExtensionContext) {
-	let fs = CreatioFS.getInstance();
-	let loginData: ConnectionInfo | undefined = context.workspaceState.get("login-data");
-
-	// if there is a workplace already open for current login data
-	if (loginData && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0].uri.scheme === "creatio") {
+async function tryCreateConnection(): Promise<CreatioClient | null> {
+	let loginData: ConnectionInfo | undefined = ConfigHelper.getLoginData();
+	if (loginData) {
 		loginData = new ConnectionInfo(loginData.url, loginData.login, loginData.password);
-		fs.client = new CreatioClient(loginData);
-		let connected = await fs.client.login();
-		if (connected) {
+		let client = new CreatioClient(loginData);
+		return await client.login() ? client : null;
+	}
+	return null;
+}
+
+async function reloadWorkSpace() {
+	let fs = CreatioFS.getInstance();
+	let connectionInfo = ConfigHelper.getLoginData();
+
+	if (!connectionInfo) {
+		return false;
+	}
+
+	vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length,
+		{
+			uri: vscode.Uri.parse('creatio:/'),
+			name: connectionInfo.getHostName()
+		}
+	);
+
+	setTimeout(async () => {
+		let client = await tryCreateConnection();
+		if (client) {
+			fs.client = client;
 			await fs.initFileSystem();
 		}
-	} else {
-		vscode.window.showErrorMessage("No workspace found");
-	}
+		return client !== null;
+	}, 1000);
+
+	// if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0].uri.scheme === "creatio") {
+		
+	// } else {
+	// 	vscode.window.showErrorMessage("No workspace found");
+	// 	return false;
+	// }
 }
 
 async function createWorkspace(context: vscode.ExtensionContext) {
 	// let input = await getInput(context.workspaceState.get('login-data'));
 	// if (input) {
-		// vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length,
-		// 	{
-		// 		uri: vscode.Uri.parse('creatio:/'),
-		// 		name: input.getHostName()
-		// 	}
-		// );
-		// context.workspaceState.update('login-data', input);
+	// vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length,
+	// 	{
+	// 		uri: vscode.Uri.parse('creatio:/'),
+	// 		name: input.getHostName()
+	// 	}
+	// );
+	// context.workspaceState.update('login-data', input);
 	// }
 
 	let panelProvider = new LoginPanelProvider(context);
-
+	panelProvider.createPanel();
 }
 
 function registerFileSystem(context: vscode.ExtensionContext) {
@@ -74,7 +100,7 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.reloadCreatioWorkspace', async () => {
-		reloadWorkSpace(context);
+		reloadWorkSpace();
 	}));
 
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
@@ -102,6 +128,7 @@ function registerContextMenus(context: vscode.ExtensionContext) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+	ConfigHelper.init(context);
 	registerFileSystem(context);
 	registerContextMenus(context);
 
