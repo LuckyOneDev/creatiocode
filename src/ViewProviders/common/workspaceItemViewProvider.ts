@@ -9,7 +9,7 @@ export abstract class WorkspaceItemViewProvider extends CreatioWebViewProvider {
     super(context);
     vscode.window.onDidChangeActiveTextEditor(x => {
       if (x?.document.uri.scheme === 'creatio') {
-        let file = CreatioFS.getInstance().getFile(x.document.uri);
+        let file = CreatioFS.getInstance().getMemFile(x.document.uri);
         if (file) {
           this.setItem(file);
         }
@@ -18,7 +18,7 @@ export abstract class WorkspaceItemViewProvider extends CreatioWebViewProvider {
 
     vscode.workspace.onDidOpenTextDocument(x => {
       if (x.uri.scheme === 'creatio') {
-        let file = CreatioFS.getInstance().getFile(x.uri);
+        let file = CreatioFS.getInstance().getMemFile(x.uri);
         if (file) {
           this.setItem(file);
         }

@@ -6,6 +6,7 @@ import { ConfigHelper } from '../common/configurationHelper';
 import { FileSystemHelper } from './fsHelper';
 import { CreatioCodeUtils } from '../common/utils';
 import { wait } from 'ts-retry';
+import { utils } from 'mocha';
 
 export class File implements vscode.FileStat {
     type: vscode.FileType;
@@ -102,7 +103,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
     // }
 
     async restoreSchema(uri: vscode.Uri): Promise<void> {
-        let file = this.getFile(uri);
+        let file = this.getMemFile(uri);
         if (file?.workSpaceItem) {
             if (file.workSpaceItem.isChanged) {
                 CreatioStatusBar.animate("Restoring schema");
@@ -140,13 +141,10 @@ export class CreatioFS implements vscode.FileSystemProvider {
         }
     }
 
-    async clearCache() {
-        return new Promise<void>((resolve, reject) => {
-            vscode.window.showInformationMessage("Delete all downloaded files?", "Yes", "No").then(async (value) => {
-                if (value && value === "Yes") {
-
-                }
-            });
+    clearCache() {
+        CreatioCodeUtils.createYesNoDialouge("Delete all downloaded files?", () => {
+            FileSystemHelper.clearFolder(FileSystemHelper.getCacheFolder());
+            this.init();
         });
     }
 
@@ -194,7 +192,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
             return folder;
         }
 
-        let file = this.getFile(uri);
+        let file = this.getMemFile(uri);
         if (file) {
             return file;
         }
@@ -251,7 +249,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
         let alikePaths = this.getUriByName(workSpaceItem.name);
         let files: File[] = alikePaths.map(uri => {
             if (!token.isCancellationRequested) {
-                let file = this.getFile(uri);
+                let file = this.getMemFile(uri);
                 if (file !== undefined) {
                     return file;
                 } else {
@@ -293,25 +291,30 @@ export class CreatioFS implements vscode.FileSystemProvider {
         };
     }
 
-    getFile(uri: vscode.Uri): File | undefined {
+    getMemFile(uri: vscode.Uri): File | undefined {
         return this.files.find(x => FileSystemHelper.getPath(x).path === uri.path);
     }
 
-    private async swapContent(uri: vscode.Uri, schema: File) {
-        FileSystemHelper.write(uri, schema);
+    private async swapContent(uri: vscode.Uri, file: File) {
+        if (!file.schema) {
+            return;
+        }
+        
+        FileSystemHelper.write(uri, file);
         this._fireSoon({
             type: vscode.FileChangeType.Changed,
             uri: uri
         });
-        // vscode.window.visibleTextEditors.filter(x => x.document.uri === uri).forEach((editor) => {
-        //     const document = vscode.window.activeTextEditor?.document;
-        //     editor.edit(edit => {
-        //         edit.replace(new vscode.Range(
-        //             document!.lineAt(0).range.start,
-        //             document!.lineAt(document!.lineCount - 1).range.end
-        //         ), schema.body.toString());
-        //     });
-        // });
+
+        vscode.window.visibleTextEditors.filter(x => x.document.uri.path === uri.path).forEach((editor) => {
+            const document = vscode.window.activeTextEditor?.document;
+            editor.edit(edit => {
+                edit.replace(new vscode.Range(
+                    document!.lineAt(0).range.start,
+                    document!.lineAt(document!.lineCount - 1).range.end
+                ), file.schema!.body.toString());
+            });
+        });
         vscode.window.showInformationMessage("File updated");
     }
 
@@ -336,7 +339,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
                     this.client.getSchema(localFile.workSpaceItem.uId, localFile.workSpaceItem.type).then(async (schema) => {
                         if (schema) {
                             if (JSON.stringify(schema.body) !== JSON.stringify(localFile!.schema?.body)) {
-                                CreatioCodeUtils.createYesNoDialouge("File on server is different from local. Pull from server?", () => {
+                                CreatioCodeUtils.createYesNoDialouge(`File on server is different from local. Pull ${schema.name} from server?`, () => {
                                     localFile!.schema = schema;
                                     this.swapContent(uri, localFile!);
                                 });
@@ -415,12 +418,12 @@ export class CreatioFS implements vscode.FileSystemProvider {
                 );
             });
 
-            this.files.forEach(element => {
-                element.mtime = Date.now();
-                FileSystemHelper.write(FileSystemHelper.getPath(element), element);
+            this.files.forEach(file => {
+                file.mtime = Date.now();
+                FileSystemHelper.update(FileSystemHelper.getPath(file), file);
                 this._fireSoon({
                     type: vscode.FileChangeType.Created,
-                    uri: FileSystemHelper.getPath(element)
+                    uri: FileSystemHelper.getPath(file)
                 });
             });
 
@@ -449,7 +452,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
     }
 
     writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): void | Thenable<void> {
-        let file = this.getFile(uri);
+        let file: any = FileSystemHelper.read(uri);
         // Local save
         if (file && file.schema) {
             file.schema.body = content.toString();
@@ -474,6 +477,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
                 } else {
                     this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
                     file!.workSpaceItem.isChanged = true;
+                    this.init();
                     CreatioStatusBar.update("File saved");
                     return;
                 }
@@ -489,7 +493,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
     }
 
     delete(uri: vscode.Uri): void {
-        let file = this.getFile(uri);
+        let file = this.getMemFile(uri);
         if (this.client && this.client.isConnected()) {
             if (file) {
                 this.client.deleteSchema([file.workSpaceItem.id]);

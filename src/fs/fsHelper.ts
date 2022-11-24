@@ -53,6 +53,15 @@ export class FileSystemHelper {
         fs.writeFileSync(this.getMetaDataFilePath(uri), JSON.stringify(data));
     }
 
+    static update(uri: vscode.Uri, file: File) {
+        let oldFile = this.read(uri);
+        if (oldFile?.schema) {
+            file.schema = oldFile.schema;
+            this.write(uri, file);
+        }
+        this.write(uri, file);
+    }
+
     static writeFiles(files: File[]) {
         files.forEach(x => {
             let uri = this.getPath(x);
@@ -62,8 +71,8 @@ export class FileSystemHelper {
         });
     }
 
-    static clearFolder(folder: string, errCallback: fs.NoParamCallback) {
-        fs.rmdir(folder, { recursive: true }, errCallback);
+    static clearFolder(folder: string, errCallback: fs.NoParamCallback = () => { }) {
+        fs.rm(folder, { recursive: true }, errCallback);
     }
 
     static getBaseDir(uri: vscode.Uri): vscode.Uri {
