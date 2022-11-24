@@ -3,9 +3,9 @@ import * as vscode from 'vscode';
 import * as http from 'http';
 import { ClientPostResponse, CreatioResponse, GetPackagesResponse, GetSchemaResponse, GetWorkspaceItemsResponse, PackageMetaInfo, SaveSchemaResponse, Schema, WorkSpaceItem, SchemaType, ReqestType } from './creatioTypes';
 import { CreatioStatusBar } from '../common/statusBar';
-import { retry, retryAsync } from 'ts-retry';
+import { retryAsync, wait } from 'ts-retry';
 import { createAsyncQueue } from './asyncQueue';
-import * as dns from 'dns';
+import { ConfigHelper } from '../common/configurationHelper';
 
 export class ConnectionInfo {
 	url: string;
@@ -93,10 +93,7 @@ export class CreatioClient {
 	}
 
 	private async tryLogin(data: any) {
-		let response: any = await retryAsync(() => this.post(this.getRequestUrl(ReqestType.login), data), {
-			delay: 50,
-			maxTry: 5
-		});
+		let response: any = await retryAsync(() => this.post(this.getRequestUrl(ReqestType.login), data), ConfigHelper.getRetryPolicy());
 
 		if (response.response.statusCode !== 200) {
 			console.error(response.body);
@@ -269,21 +266,14 @@ export class CreatioClient {
 
 	async trySendApiRequest<ResponseType extends CreatioResponse>(path: string, postData: any = null): Promise<ClientPostResponse<ResponseType>> {
 		if (!this.cookies || this.cookies.length === 0 || this.isConnected() === false) {
-			// reconnect
-			this.login();
+			await this.login();
 		}
 
-		let response = await retryAsync(() => this.sendApiRequest(path, postData), {
-			delay: 100,
-			maxTry: 5
-		});
+		let response = await retryAsync(() => this.sendApiRequest(path, postData), ConfigHelper.getRetryPolicy());
 
 		if (response.response.statusCode === 401) {
-			this.login();
-			response = await retryAsync(() => this.sendApiRequest(path, postData), {
-				delay: 100,
-				maxTry: 5
-			});
+			await this.login();
+			return await this.trySendApiRequest(path, postData);
 		} else if (response.response.statusCode !== 200) {
 			console.error(response.body);
 			throw Error(response.response.statusMessage);

@@ -29,7 +29,7 @@ window.onload = async function () {
         document.getElementById('password').value = loginData.password;
     }
 
-    document.getElementById('confirm').onclick = function () {
+    document.getElementById('connect').onclick = function () {
         if (validateLogin()) {
             postVscMessage({
                 command: 'login',
@@ -38,6 +38,14 @@ window.onload = async function () {
                     login: document.getElementById('login').value,
                     password: document.getElementById('password').value
                 }
+            });
+        }
+    };
+
+    document.getElementById('reload').onclick = function () {
+        if (validateLogin()) {
+            postVscMessage({
+                command: 'reload',
             });
         }
     };

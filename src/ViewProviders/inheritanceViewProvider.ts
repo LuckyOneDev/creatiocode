@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CreatioFS } from '../fs/fileSystemProvider';
+import { CreatioFS, File } from '../fs/fileSystemProvider';
 import { Schema, WorkSpaceItem } from '../api/creatioTypes';
 import { WorkspaceItemViewProvider } from './common/workspaceItemViewProvider';
 import { FileSystemHelper } from '../fs/fsHelper';
@@ -12,9 +12,9 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     loadedSchema?: WorkSpaceItem;
     cancelationTokenSource = new vscode.CancellationTokenSource();
 
-    schemas?: Schema[];
+    files?: File[];
 
-    protected onDidReceiveMessage(message: any): void {
+    protected onDidReceiveMessage = (message: any) => {
         switch (message.command) {
             case 'openSchema':
                 let uri = CreatioFS.getInstance().getSchemaUri(message.id);
@@ -23,96 +23,49 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
                 });
                 break;
             case 'getCurrentSchema':
-                this.postMessage(this.currentShema?.uId);
+                this.postMessage(this.currentFile?.workSpaceItem.uId);
                 break;
         }
 
-    }
-
-    protected async getParentSchemas(workSpaceItem: WorkSpaceItem, token: vscode.CancellationToken): Promise<{ schemas: Array<Schema>, cancelled: boolean }> {
-        let items = [];
-        let client = CreatioFS.getInstance().client;
-
-        let alikeSchemas = CreatioFS.getInstance().getUriByName(workSpaceItem.name);
-
-        if (client) {
-            let loadedSchemas = alikeSchemas.map(async uri => {
-                if (!token.isCancellationRequested) {
-                    return await CreatioFS.getInstance().getFile(uri);
-                }
-            });
-
-            if (token.isCancellationRequested) {
-                return {
-                    schemas: [],
-                    cancelled: token.isCancellationRequested
-                }; 
-            }
-
-            // let first = await client.getSchema(workSpaceItem.uId, workSpaceItem.type);
-            if (first) {
-                items.push(first);
-                while (items[items.length - 1].parent && token.isCancellationRequested === false) {
-                    let current: any = items[items.length - 1];
-                    let newSchema: Schema | null = await client.getSchema(current.parent.uId, workSpaceItem.type);
-                    if (newSchema) {
-                        items.push(newSchema);
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-        return {
-            schemas: items,
-            cancelled: token.isCancellationRequested
-        };
-    }
+    };
 
     protected getBody(): string {
-        if (!this.currentShema) {
+        if (!this.currentFile) {
             return "Schema not selected";
         }   
 
-        if (this.schemas && this.schemas.findIndex(x => x.uId === this.currentShema?.uId) !== -1) {
+        if (this.files && this.files.findIndex(x => x.workSpaceItem.uId === this.currentFile?.workSpaceItem.uId) !== -1) {
             return this.buildInheritanceTree();
         } else {
             this.cancelationTokenSource.cancel();
             this.cancelationTokenSource = new vscode.CancellationTokenSource();
-            this.getParentSchemas(this.currentShema, this.cancelationTokenSource.token).then((resp) => {
-                this.schemas = resp.schemas;
+            CreatioFS.getInstance().getParentFiles(this.currentFile, this.cancelationTokenSource.token).then((resp) => {
+                this.files = resp.files;
                 if (!resp.cancelled) {
                     this.reloadWebview();
-                    FileSystemHelper.writeFiles(resp.schemas);
+                    FileSystemHelper.writeFiles(resp.files);
                 }
             });
             return `<span class="loader"></span>`;
         }
-
-
-    }
-
-    // Sorts schemas by parent
-    orderSchemas(schemas: Schema[]): Schema[] {
-        return [];
     }
 
     buildInheritanceTree(): string {
-        if (!this.schemas) {
+        if (!this.files) {
             return "";
         }
         let html = "";
-        for (let i = 0; i < this.schemas.length; i++) {
-            html += `<div id = ${this.schemas[i].uId}>${this.schemas[i].name} (${this.schemas[i].package?.name})</div>`;
+        for (let i = 0; i < this.files.length; i++) {
+            html += `<div id = ${this.files[i].workSpaceItem.uId}>${this.files[i].name} (${this.files[i].workSpaceItem.packageName})</div>`;
         }
         return html;
     }
 
-    setItem(schema: WorkSpaceItem): void {
-        this.currentShema = schema;
-        if (this.schemas) {
-            if (this.schemas.findIndex(x => x.uId === schema.uId) === -1) {
-                this.schemas = undefined;
+    setItem(file: File): void {
+        this.currentFile = file;
+        if (this.files) {
+            if (this.files.findIndex(x => x.workSpaceItem.uId === file.workSpaceItem.uId) === -1) {
+                this.files = undefined;
                 this.reloadWebview();
             }
         } else {

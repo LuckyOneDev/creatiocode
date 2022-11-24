@@ -2,7 +2,7 @@
   "name": "creatiocode",
   "displayName": "CreatioCode",
   "description": "VsCode integration with Creatio web editor",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "repository": "https://github.com/LuckyOneDev/creatiocode",
   "publisher": "LuckyOne",
   "icon": "resources/media/icon.png",
@@ -15,7 +15,8 @@
   "activationEvents": [
     "onCommand:creatiocode.createCreatioWorkspace",
     "onCommand:creatiocode.reloadCreatioWorkspace",
-    "onWebviewPanel:creatiocode.loginPage"
+    "onWebviewPanel:creatiocode.loginPage",
+    "onView:creatioHome"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -59,7 +60,23 @@
         }
       ]
     },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "creatio-code",
+          "title": "Creatio Code",
+          "icon": "resources/media/dep.svg"
+        }
+      ]
+    },
     "views": {
+      "creatio-code": [
+        {
+          "type": "webview",
+          "id": "creatioHome",
+          "name": "Home"
+        }
+      ],
       "explorer": [
         {
           "when": "resource =~ /creatio/",
@@ -84,6 +101,21 @@
     "configuration": {
       "title": "Creatio Code",
       "properties": {
+        "creatiocode.carefulMode": {
+          "type": "boolean",
+          "default": "true",
+          "description": "If true extension will check server version of file every time it is opened."
+        },
+        "creatiocode.retryPolicy.attempts": {
+          "type": "number",
+          "default": "5",
+          "description": "How many attempts to reconnect will be performed automatically."
+        },
+        "creatiocode.retryPolicy.delay": {
+          "type": "number",
+          "default": "1000",
+          "description": "How long to wait before each continious attempt of calling server."
+        },
         "creatiocode.fileTypes.ClientUnit.Extension": {
           "type": "string",
           "default": ".js",

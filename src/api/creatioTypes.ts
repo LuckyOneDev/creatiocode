@@ -116,6 +116,15 @@ export interface Schema {
 	parent: Partial<Schema>;
 }
 
+export function isSchema(object: any): object is Schema {
+    return 'uId' in object 
+		&& 'name' in object
+		&& 'schemaType' in object
+		&& 'body' in object
+		&& 'isReadOnly' in object
+		&& 'parent' in object;
+}
+
 export interface WorkSpaceItem {
 	id: string;
 	uId: string;
@@ -129,6 +138,14 @@ export interface WorkSpaceItem {
 	packageUId: string;
 	title: string | undefined;
 	type: SchemaType;
+}
+
+export function isWorkspaceItem(object: any): object is WorkSpaceItem {
+    return 'uId' in object 
+		&& 'name' in object
+		&& 'type' in object
+		&& 'packageName' in object
+		&& 'packageUId' in object;
 }
 
 export class ClientPostResponse<ResponseType extends CreatioResponse> {

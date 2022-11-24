@@ -53,20 +53,19 @@ export abstract class CreatioWebViewProvider implements vscode.WebviewViewProvid
     if (this.webviewView) {
       this.webviewView.webview.options = { enableScripts: true };
       this.webviewView.webview.html = this.getHtml();
-      this.webviewView.webview.postMessage({ command: 'reload' });
     }
   }
 
   public resolveWebviewView(webviewView: vscode.WebviewView, context: vscode.WebviewViewResolveContext<unknown>, token: vscode.CancellationToken): void | Thenable<void> {
-    webviewView.webview.options = {
+    this.webviewView = webviewView;
+    this.webviewView.webview.onDidReceiveMessage(this.onDidReceiveMessage);
+    this.webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.file(path.join(this.context.extensionPath, 'resources'))
       ]
     };
     webviewView.webview.html = this.getHtml();
-    this.webviewView = webviewView;
-    this.webviewView.webview.onDidReceiveMessage(this.onDidReceiveMessage);
   }
 
 }

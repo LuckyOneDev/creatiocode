@@ -1,17 +1,17 @@
 import * as vscode from 'vscode';
-import { CreatioFS } from '../../fs/fileSystemProvider';
+import { CreatioFS, File } from '../../fs/fileSystemProvider';
 import { WorkSpaceItem } from '../../api/creatioTypes';
 import { CreatioWebViewProvider } from './creatioWebViewProvider';
 
 export abstract class WorkspaceItemViewProvider extends CreatioWebViewProvider {
-  currentShema?: WorkSpaceItem;
+  currentFile?: File;
   constructor(context: vscode.ExtensionContext) {
     super(context);
     vscode.window.onDidChangeActiveTextEditor(x => {
       if (x?.document.uri.scheme === 'creatio') {
         let file = CreatioFS.getInstance().getFile(x.document.uri);
         if (file) {
-          this.setItem(file.workSpaceItem);
+          this.setItem(file);
         }
       }
     });
@@ -20,14 +20,14 @@ export abstract class WorkspaceItemViewProvider extends CreatioWebViewProvider {
       if (x.uri.scheme === 'creatio') {
         let file = CreatioFS.getInstance().getFile(x.uri);
         if (file) {
-          this.setItem(file.workSpaceItem);
+          this.setItem(file);
         }
       }
     });
   }
 
-  setItem(schema: WorkSpaceItem): void {
-    this.currentShema = schema;
+  setItem(file: File): void {
+    this.currentFile = file;
     this.reloadWebview();
   }
 }

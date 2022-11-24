@@ -39,7 +39,7 @@ export class LoginPanelProvider {
                 }
                 break;
             case 'getLoginData': 
-                this.loginPanel?.webview.postMessage(ConfigHelper.getLoginData());
+                this.loginPanel?.webview.postMessage(ConfigHelper.getLoginData() ? ConfigHelper.getLoginData() : {});
                 break;
 
         }

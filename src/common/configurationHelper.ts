@@ -1,3 +1,4 @@
+import { RetryOptions } from 'ts-retry';
 import * as vscode from 'vscode';
 import { ConnectionInfo } from '../api/creatioClient';
 import { SchemaType, WorkSpaceItem } from '../api/creatioTypes';
@@ -11,7 +12,7 @@ export class ConfigHelper {
         ConfigHelper.config = vscode.workspace.getConfiguration("creatiocode");
     }
 
-    public static getSchemaTypeByExtension(path: string): SchemaType {
+    static getSchemaTypeByExtension(path: string): SchemaType {
         let extension = path.split('.').pop();
         switch (extension) {
             case this.config.get("fileTypes.ClientUnit.Extension"):
@@ -35,7 +36,7 @@ export class ConfigHelper {
         }
     }
 
-    public static getExtension(type: SchemaType): string | undefined {
+    static getExtension(type: SchemaType): string | undefined {
         switch (type) {
             case SchemaType.clientUnit:
                 return ConfigHelper.config.get("fileTypes.ClientUnit.Extension");
@@ -60,7 +61,7 @@ export class ConfigHelper {
         }
     }
 
-    public static isFileTypeEnabled(type: SchemaType) {
+    static isFileTypeEnabled(type: SchemaType) {
         switch (type) {
             case SchemaType.clientUnit:
                 return ConfigHelper.config.get("fileTypes.ClientUnit.Enabled");
@@ -85,7 +86,7 @@ export class ConfigHelper {
         }
     }
 
-    public static getLoginData(): ConnectionInfo | undefined {
+    static getLoginData(): ConnectionInfo | undefined {
         let loginData: ConnectionInfo | undefined = ConfigHelper.context.globalState.get("loginData");
         if (loginData) {
            return new ConnectionInfo(loginData.url, loginData.login, loginData.password);
@@ -93,7 +94,18 @@ export class ConfigHelper {
         return undefined;
     }
 
-    public static setLoginData(loginData: ConnectionInfo) {
+    static setLoginData(loginData: ConnectionInfo) {
         ConfigHelper.context.globalState.update("loginData", loginData);
+    }
+
+    static isCarefulMode(): boolean {
+        return this.config.get("carefulMode") ? true : false;
+    }
+
+    static getRetryPolicy(): RetryOptions {
+        return {
+            maxTry: this.config.get("retryPolicy.attempts") || 3,
+            delay: this.config.get("retryPolicy.delay") || 1000
+        };
     }
 }

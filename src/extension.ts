@@ -7,6 +7,7 @@ import { InheritanceViewProvider } from './ViewProviders/inheritanceViewProvider
 import { SchemaStructureDefinitionProvider, StructureViewProvider } from './ViewProviders/structureViewProvider';
 import { LoginPanelProvider } from './ViewProviders/loginPage';
 import { ConfigHelper } from './common/configurationHelper';
+import { HomeViewProvider } from './ViewProviders/homeViewProvider';
 
 async function getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
 	const url = await vscode.window.showInputBox({
@@ -57,25 +58,16 @@ async function reloadWorkSpace() {
 	vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length,
 		{
 			uri: vscode.Uri.parse('creatio:/'),
-			name: connectionInfo.getHostName()
+			name: connectionInfo.getHostName(),
 		}
 	);
 
-	setTimeout(async () => {
-		let client = await tryCreateConnection();
-		if (client) {
-			fs.client = client;
-			await fs.initFileSystem();
-		}
-		return client !== null;
-	}, 1000);
-
-	// if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0].uri.scheme === "creatio") {
-		
-	// } else {
-	// 	vscode.window.showErrorMessage("No workspace found");
-	// 	return false;
-	// }
+	let client = await tryCreateConnection();
+	if (client) {
+		fs.client = client;
+		await fs.init();
+	}
+	return client !== null;
 }
 
 async function createWorkspace(context: vscode.ExtensionContext) {
@@ -152,6 +144,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider("creatioInheritance", new InheritanceViewProvider(context))
+	);
+
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider("creatioHome", new HomeViewProvider(context))
 	);
 
 	context.subscriptions.push(

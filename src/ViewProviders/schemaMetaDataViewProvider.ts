@@ -1,14 +1,15 @@
 import { WorkSpaceItem } from '../api/creatioTypes';
+import { File } from '../fs/fileSystemProvider';
 import { WorkspaceItemViewProvider } from './common/workspaceItemViewProvider';
 
 export class SchemaMetaDataViewProvider extends WorkspaceItemViewProvider {
   styles = ['schemaMetaDataView.css'];
 
   protected getBody(): string {
-    if (!this.currentShema) {
+    if (!this.currentFile) {
       return 'Schema not selected';
     }
-    return this.generateTable(this.currentShema);
+    return this.generateTable(this.currentFile);
   }
 
   createTableString(tableData: Array<Array<string>>): string {
@@ -24,9 +25,9 @@ export class SchemaMetaDataViewProvider extends WorkspaceItemViewProvider {
     return result;
   }
 
-  generateTable(schema: WorkSpaceItem): string {
+  generateTable(file: File): string {
     let tableData: any = [];
-    for (const [key, value] of Object.entries(schema)) {
+    for (const [key, value] of Object.entries(file.workSpaceItem)) {
       tableData.push([key, value]);
     }
     return this.createTableString(tableData);
