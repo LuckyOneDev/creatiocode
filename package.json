@@ -7,7 +7,7 @@
   "publisher": "LuckyOne",
   "icon": "resources/media/icon.png",
   "engines": {
-    "vscode": "^1.72.0"
+    "vscode": "^1.73.1"
   },
   "categories": [
     "Other"
