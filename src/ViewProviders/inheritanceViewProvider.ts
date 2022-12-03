@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { CreatioFS, File } from '../fs/fileSystemProvider';
+import { CreatioFS, File } from './fs/fileSystemProvider';
 import { Schema, WorkSpaceItem } from '../api/creatioTypes';
 import { WorkspaceItemViewProvider } from './common/workspaceItemViewProvider';
-import { FileSystemHelper } from '../fs/fsHelper';
+import { FileSystemHelper } from './fs/fsHelper';
 
 export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     scripts = ['inheritanceView.js'];

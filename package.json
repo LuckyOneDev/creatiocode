@@ -15,8 +15,9 @@
   "activationEvents": [
     "onCommand:creatiocode.createCreatioWorkspace",
     "onCommand:creatiocode.reloadCreatioWorkspace",
+    "onCommand:creatiocode.clearCache",
     "onWebviewPanel:creatiocode.loginPage",
-    "onView:creatioHome"
+    "onView:creatioExplorer"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -44,6 +45,10 @@
       {
         "command": "creatiocode.schemaTreeViewer.reveal",
         "title": "Schema Tree Viewer Reveal"
+      },
+      {
+        "command": "creatiocode.loadFile",
+        "title": "Load file"
       }
     ],
     "menus": {
@@ -63,17 +68,16 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "creatio-code",
+          "id": "creatiocode-Explorer",
           "title": "Creatio Code",
           "icon": "resources/media/creatio-explorer.svg"
         }
       ]
     },
     "views": {
-      "creatio-code": [
+      "creatiocode-Explorer": [
         {
-          "type": "webview",
-          "id": "creatioHome",
+          "id": "creatiocode.Explorer",
           "name": "Home"
         }
       ],
@@ -98,6 +102,12 @@
         }
       ]
     },
+    "viewsWelcome": [
+			{
+				"view": "creatiocode.Explorer",
+				"contents": "You don't have any configured environment, try adding one\n [Add new connection](command:creatiocode.createCreatioWorkspace)"
+			}
+		],
     "configuration": {
       "title": "Creatio Code",
       "properties": {

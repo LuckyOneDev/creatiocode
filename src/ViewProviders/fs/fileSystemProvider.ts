@@ -1,10 +1,13 @@
+// LEGACY CODE
+// TODO: Move filesystem code to separate 
+
 import * as vscode from 'vscode';
-import { CreatioClient } from '../api/creatioClient';
-import { PackageMetaInfo, Schema, WorkSpaceItem, SchemaType } from '../api/creatioTypes';
-import { CreatioStatusBar } from '../common/statusBar';
-import { ConfigHelper } from '../common/configurationHelper';
+import { CreatioClient } from '../../api/creatioClient';
+import { PackageMetaInfo, Schema, WorkSpaceItem, SchemaType } from '../../api/creatioTypes';
+import { CreatioStatusBar } from '../../common/statusBar';
+import { ConfigHelper } from '../../common/configurationHelper';
 import { FileSystemHelper } from './fsHelper';
-import { CreatioCodeUtils } from '../common/utils';
+import { CreatioCodeUtils } from '../../common/utils';
 import { wait } from 'ts-retry';
 import { utils } from 'mocha';
 
@@ -112,7 +115,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
                     file = await this.read(uri, true);
 
                     if (file && file.schema) {
-                        FileSystemHelper.write(uri, file);
+                        FileSystemHelper.write(file);
                         await vscode.window.activeTextEditor?.edit((edit) => {
                             vscode.window.visibleTextEditors.forEach((editor) => {
                                 const document = editor.document;
@@ -201,24 +204,20 @@ export class CreatioFS implements vscode.FileSystemProvider {
     }
 
     getDirectoryContents(uri: vscode.Uri): Entry[] {
-        let folder = this.folders.find(x => FileSystemHelper.getPath(x).path === uri.path);
-        if (folder) {
-            return this.files.filter(x => x.workSpaceItem.packageName === folder?.package?.name);
+        const pack = this.folders.find(x => FileSystemHelper.getPath(x).path === uri.path);
+        if (pack?.package) {
+            return this.files.filter(x => x?.workSpaceItem.packageUId === pack.package?.uId);
+        } else {
+            throw vscode.FileSystemError.FileNotFound();
         }
-
-        return [];
     }
 
     readDirectory(uri: vscode.Uri): [string, vscode.FileType][] {
         if (uri.path === "/") {
             return this.folders.map(x => [x.name, vscode.FileType.Directory]);
         }
-        const pack = this.folders.find(x => FileSystemHelper.getPath(x).path === uri.path);
-        if (pack?.package) {
-            return this.files.filter(x => x?.workSpaceItem.packageUId === pack.package?.uId).map(x => [x.name, x.type]);
-        } else {
-            throw vscode.FileSystemError.FileNotFound();
-        }
+        let content = this.getDirectoryContents(uri);
+        return content.map(x => [x.name, x.type]);
     }
 
     async getParentFiles(file: File, token: vscode.CancellationToken): Promise<{ files: Array<File>, cancelled: boolean }> {
@@ -300,7 +299,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
             return;
         }
         
-        FileSystemHelper.write(uri, file);
+        FileSystemHelper.write(file);
         this._fireSoon({
             type: vscode.FileChangeType.Changed,
             uri: uri
@@ -355,7 +354,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
                 let schema = await this.client.getSchema(localFile.workSpaceItem.uId, localFile.workSpaceItem.type);
                 if (schema) {
                     localFile.schema = schema;
-                    FileSystemHelper.write(uri, localFile);
+                    FileSystemHelper.write(localFile);
                     return localFile;
                 } else {
                     throw vscode.FileSystemError.FileNotFound();
@@ -420,7 +419,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
 
             this.files.forEach(file => {
                 file.mtime = Date.now();
-                FileSystemHelper.update(FileSystemHelper.getPath(file), file);
+                FileSystemHelper.update(file);
                 this._fireSoon({
                     type: vscode.FileChangeType.Created,
                     uri: FileSystemHelper.getPath(file)
@@ -456,7 +455,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
         // Local save
         if (file && file.schema) {
             file.schema.body = content.toString();
-            FileSystemHelper.write(uri, file);
+            FileSystemHelper.write(file);
         }
 
         if (!file && options.create) {

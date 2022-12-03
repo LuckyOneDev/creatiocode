@@ -1,5 +1,5 @@
 import { WorkSpaceItem } from '../api/creatioTypes';
-import { File } from '../fs/fileSystemProvider';
+import { File } from './fs/fileSystemProvider';
 import { WorkspaceItemViewProvider } from './common/workspaceItemViewProvider';
 
 export class SchemaMetaDataViewProvider extends WorkspaceItemViewProvider {

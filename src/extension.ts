@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ConnectionInfo, CreatioClient } from './api/creatioClient';
-import { CreatioFS } from './fs/fileSystemProvider';
+import { CreatioFS } from './ViewProviders/fs/fileSystemProvider';
 import { CreatioStatusBar } from './common/statusBar';
 import { SchemaMetaDataViewProvider } from './ViewProviders/schemaMetaDataViewProvider';
 import { InheritanceViewProvider } from './ViewProviders/inheritanceViewProvider';
@@ -8,6 +8,8 @@ import { SchemaStructureDefinitionProvider, StructureViewProvider } from './View
 import { LoginPanelProvider } from './ViewProviders/loginPage';
 import { ConfigHelper } from './common/configurationHelper';
 import { HomeViewProvider } from './ViewProviders/homeViewProvider';
+import { CreatioExplorer } from './ViewProviders/fs/explorer';
+import { FileSystemHelper } from './ViewProviders/fs/fsHelper';
 
 async function getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
 	const url = await vscode.window.showInputBox({
@@ -55,18 +57,18 @@ async function reloadWorkSpace() {
 		return false;
 	}
 
-	vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length,
-		{
-			uri: vscode.Uri.parse('creatio:/'),
-			name: connectionInfo.getHostName(),
-		}
-	);
-
 	let client = await tryCreateConnection();
 	if (client) {
 		fs.client = client;
 		await fs.init();
+		CreatioExplorer.getInstance().refresh();
+		// vscode.workspace.updateWorkspaceFolders(0, 0,
+		// 	{
+		// 		uri: vscode.Uri.file(FileSystemHelper.getDataFolder())
+		// 	}
+		// );
 	}
+
 	return client !== null;
 }
 
@@ -95,11 +97,11 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 		reloadWorkSpace();
 	}));
 
-	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
-		'creatio',
-		CreatioFS.getInstance(),
-		{ isCaseSensitive: true }
-	));
+	// context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
+	// 	'creatio',
+	// 	CreatioFS.getInstance(),
+	// 	{ isCaseSensitive: true }
+	// ));
 }
 
 function registerContextMenus(context: vscode.ExtensionContext) {
@@ -145,9 +147,9 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider("creatioInheritance", new InheritanceViewProvider(context))
 	);
-
+	
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider("creatioHome", new HomeViewProvider(context))
+		vscode.window.registerTreeDataProvider("creatiocode.Explorer", CreatioExplorer.getInstance())
 	);
 
 	context.subscriptions.push(
@@ -172,6 +174,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 			editor.selection = new vscode.Selection(start, end);
 			editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand("creatiocode.loadFile", async (uri) => {
+			await CreatioFS.getInstance().readFile(uri);
+			await vscode.commands.executeCommand("vscode.open", uri);
 		})
 	);
 

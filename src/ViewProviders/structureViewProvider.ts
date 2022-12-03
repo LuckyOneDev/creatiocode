@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { CreatioAstNode, CreatioAstStructure } from "../common/ast";
 import { CreatioStatusBar } from "../common/statusBar";
-import { CreatioFS } from "../fs/fileSystemProvider";
+import { CreatioFS } from "./fs/fileSystemProvider";
 
 export class SchemaStructureDefinitionProvider implements vscode.DefinitionProvider {
 	// Singleton
