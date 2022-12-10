@@ -1,22 +1,19 @@
 # creatiocode README
 
-This Visual Studio Code extension allows users to connect to their Creatio web project and edit code.
+This Visual Studio Code extension allows to connect to Creatio web project and edit code.
 
-## Features
+## Feature showoff
 
-View code with syntax highlighting
+File search
 
-Cache packages
+Inheritance trees
 
-See file metadata
+File structure
 
-Restore files to svn version
+Goto dependency
 
-Generate inheritance trees  (for js files)
 
 ## Known Issues
 
-* If current file is changed while loading updated version from server another file might be overwritten
-* File info and inheritance sometimes need to be reopened once to work propetly 
-* After changing settings workplace needs to be reloaded manually
-* File Info doesn't reload when info changes
+* File icon won't show if file was opened before connecting
+* Retry connection dialouge is created multiple times

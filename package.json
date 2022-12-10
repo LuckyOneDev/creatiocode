@@ -2,7 +2,7 @@
   "name": "creatiocode",
   "displayName": "CreatioCode",
   "description": "VsCode integration with Creatio web editor",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "repository": "https://github.com/LuckyOneDev/creatiocode",
   "publisher": "LuckyOne",
   "icon": "resources/media/icon.png",
@@ -12,12 +12,17 @@
   "categories": [
     "Other"
   ],
+  "keywords": [
+    "Creatio",
+    "CRM"
+  ],
   "activationEvents": [
     "onCommand:creatiocode.createCreatioWorkspace",
     "onCommand:creatiocode.reloadCreatioWorkspace",
     "onCommand:creatiocode.clearCache",
     "onWebviewPanel:creatiocode.loginPage",
-    "onView:creatioExplorer"
+    "onView:creatioExplorer",
+    "onFileSystem:creatio"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -28,7 +33,11 @@
       },
       {
         "command": "creatiocode.reloadCreatioWorkspace",
-        "title": "Reload Creatio workspace"
+        "title": "Reload Creatio workspace",
+        "icon": {
+          "light": "resources/media/light/reload.svg",
+          "dark": "resources/media/dark/reload.svg"
+        }
       },
       {
         "command": "creatiocode.cacheFolder",
@@ -40,7 +49,7 @@
       },
       {
         "command": "creatiocode.revertSchema",
-        "title": "Pull schema from SVN"
+        "title": "Revert"
       },
       {
         "command": "creatiocode.schemaTreeViewer.reveal",
@@ -49,19 +58,57 @@
       {
         "command": "creatiocode.loadFile",
         "title": "Load file"
+      },
+      {
+        "command": "creatiocode.lockSchema",
+        "title": "Lock 🔒"
+      },
+      {
+        "command": "creatiocode.unlockSchema",
+        "title": "Unlock 🔓"
+      },
+      {
+        "command": "creatiocode.reloadSchema",
+        "title": "Reload",
+        "icon": {
+          "light": "resources/media/light/reload.svg",
+          "dark": "resources/media/dark/reload.svg"
+        }
       }
     ],
     "menus": {
-      "explorer/context": [
+      "view/title": [
         {
-          "when": "resource =~ /creatio/ && !explorerResourceReadonly && explorerResourceIsFolder",
+          "command": "creatiocode.reloadCreatioWorkspace",
+          "when": "view =~ /creatiocode.Explorer/",
+          "group": "navigation@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "when": "view == creatiocode.Explorer && viewItem =~ /CreatioPackage/",
           "command": "creatiocode.cacheFolder",
           "group": "navigation"
         },
         {
-          "when": "resource =~ /creatio/ && !explorerResourceReadonly && !explorerResourceIsFolder",
+          "when": "view == creatiocode.Explorer && viewItem =~ /CreatioSchema/",
           "command": "creatiocode.revertSchema",
           "group": "navigation"
+        },
+        {
+          "when": "view == creatiocode.Explorer && viewItem =~ /CreatioSchema/",
+          "command": "creatiocode.lockSchema",
+          "group": "5_cutcopypaste"
+        },
+        {
+          "when": "view == creatiocode.Explorer && viewItem =~ /CreatioSchema/",
+          "command": "creatiocode.unlockSchema",
+          "group": "5_cutcopypaste"
+        },
+        {
+          "when": "view == creatiocode.Explorer && viewItem =~ /CreatioSchema/",
+          "command": "creatiocode.reloadSchema",
+          "group": "inline"
         }
       ]
     },
@@ -78,24 +125,19 @@
       "creatiocode-Explorer": [
         {
           "id": "creatiocode.Explorer",
-          "name": "Home"
-        }
-      ],
-      "explorer": [
+          "name": "Explorer"
+        },
         {
-          "when": "resource =~ /creatio/",
           "type": "webview",
           "id": "creatioFileInfo",
           "name": "Creatio: File Info"
         },
         {
-          "when": "resource =~ /creatio/",
           "type": "webview",
           "id": "creatioInheritance",
           "name": "Creatio: File Inheritance"
         },
         {
-          "when": "resource =~ /creatio/",
           "type": "tree",
           "id": "creatiocode.view.schemaTreeViewer",
           "name": "Creatio: Schema Structure"
@@ -103,11 +145,11 @@
       ]
     },
     "viewsWelcome": [
-			{
-				"view": "creatiocode.Explorer",
-				"contents": "You don't have any configured environment, try adding one\n [Add new connection](command:creatiocode.createCreatioWorkspace)"
-			}
-		],
+      {
+        "view": "creatiocode.Explorer",
+        "contents": "Currently not connected to creatio web\n [Open new connection panel](command:creatiocode.createCreatioWorkspace)"
+      }
+    ],
     "configuration": {
       "title": "Creatio Code",
       "properties": {
@@ -228,6 +270,7 @@
     "@types/glob": "^8.0.0",
     "@types/mocha": "^10.0.0",
     "@types/node": "^16.18.3",
+    "@types/rimraf": "^3.0.2",
     "@types/vscode": "^1.73.1",
     "@typescript-eslint/eslint-plugin": "^5.43.0",
     "@typescript-eslint/parser": "^5.43.0",
@@ -240,6 +283,7 @@
   "dependencies": {
     "@babel/parser": "^7.20.3",
     "@babel/traverse": "^7.20.1",
+    "rimraf": "^3.0.2",
     "ts-retry": "^4.1.0"
   }
 }

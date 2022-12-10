@@ -30,20 +30,25 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     };
 
     protected getBody(): string {
+        // Check if currentFile is defined
         if (!this.currentFile) {
             return "Schema not selected";
-        }   
+        }
 
+        // If files exists and currentFile is in it, build inheritance tree
         if (this.files && this.files.findIndex(x => x.workSpaceItem.uId === this.currentFile?.workSpaceItem.uId) !== -1) {
             return this.buildInheritanceTree();
         } else {
+            // Cancel current operation and create new cancellation token
             this.cancelationTokenSource.cancel();
             this.cancelationTokenSource = new vscode.CancellationTokenSource();
+
+            // Get parent files and write them to filesystem
             CreatioFS.getInstance().getParentFiles(this.currentFile, this.cancelationTokenSource.token).then((resp) => {
                 this.files = resp.files;
                 if (!resp.cancelled) {
                     this.reloadWebview();
-                    FileSystemHelper.writeFiles(resp.files);
+                    CreatioFS.getInstance().fsHelper.writeFiles(resp.files);
                 }
             });
             return `<span class="loader"></span>`;

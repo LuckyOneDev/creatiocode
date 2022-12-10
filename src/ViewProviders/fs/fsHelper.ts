@@ -7,12 +7,16 @@ import { ConfigHelper } from '../../common/configurationHelper';
 import { isSchema, isWorkspaceItem, Schema, WorkSpaceItem } from '../../api/creatioTypes';
 
 export class FileSystemHelper {
-    static root: string;
-    static getNameSpace(): vscode.Uri {
-        return vscode.Uri.joinPath(vscode.Uri.file(this.getCacheFolder()), this.root);
+    root: string;
+    constructor(root: string) {
+        this.root = root;
     }
 
-    static getPath(entry: Entry | WorkSpaceItem): vscode.Uri {
+    getNameSpace(): vscode.Uri {
+        return vscode.Uri.joinPath(vscode.Uri.parse("creatio:/"), this.root);
+    }
+
+    getPath(entry: Entry | WorkSpaceItem): vscode.Uri {
         if (entry instanceof File) {
             return vscode.Uri.joinPath(this.getNameSpace(), entry.workSpaceItem.packageName, this.withExtension(entry.workSpaceItem));
         } else if (isWorkspaceItem(entry)) {
@@ -22,45 +26,91 @@ export class FileSystemHelper {
         }
     }
 
-    static read(uri: vscode.Uri): File | undefined {
-        var body: string | undefined = undefined;
-        var file: any = undefined;
+    /**
+     * File is composed of two parts: metadata and body
+     * @param uri 
+     * @returns 
+     */
+    read(uri: vscode.Uri): File | undefined {
+        let file: any = undefined;
+        let body: string | undefined = undefined;
 
-        if (fs.existsSync(this.getFullDataFilePath(uri))) {
-            body = fs.readFileSync(this.getFullDataFilePath(uri), { encoding: 'utf8' });
+        // Check if the data file exists and read it
+        const dataFilePath = this.getFullDataFilePath(uri);
+        if (fs.existsSync(dataFilePath)) {
+            body = fs.readFileSync(dataFilePath, { encoding: 'utf8' });
         }
 
-        if (fs.existsSync(this.getMetaDataFilePath(uri))) {
-            file = JSON.parse(fs.readFileSync(this.getMetaDataFilePath(uri), { encoding: 'utf8' }));
+        function isJSON(text: string): any {
+            try {
+                JSON.parse(text);
+            } catch (e) {
+                return false;
+            }
+            return true;
+        }
+
+        // Check if the metadata file exists and read it
+        const metaDataFilePath = this.getMetaDataFilePathWithExtension(uri);
+        if (fs.existsSync(metaDataFilePath)) {
+            const metadataContent = fs.readFileSync(metaDataFilePath, { encoding: 'utf8' });
+
+            if (isJSON(metadataContent)) {
+                file = JSON.parse(metadataContent);
+            } else {
+                return undefined;
+            }
+
+            // Add the body to the schema if it exists
             if (!file.schema) {
                 file.schema = {};
             }
             if (body) {
                 file.schema.body = body;
             }
+
             return Object.assign(new File("", {} as WorkSpaceItem), file) as File;
         } else {
             return undefined;
         }
     }
 
-    static write(file: File) {
-        let uri = this.getPath(file);
-        let data = JSON.parse(JSON.stringify(file));
-        if (!fs.existsSync(this.getDataFileFolder(uri))) {
-            fs.mkdirSync(this.getDataFileFolder(uri), { recursive: true });
+
+    write(file: File) {
+        // Get the path and clone the file object
+        const uri = this.getPath(file);
+        const data = JSON.parse(JSON.stringify(file));
+
+        // Create the data file folder if it doesn't exist
+        const dataFileFolder = this.getDataFileFolder(uri);
+        if (!fs.existsSync(dataFileFolder)) {
+            fs.mkdirSync(dataFileFolder, { recursive: true });
         }
+
+        // Write the body of the file to the data file
         if (data.schema?.body) {
             fs.writeFileSync(this.getFullDataFilePath(uri), data.schema.body);
             data.schema.body = "";
         }
-        if (!fs.existsSync(this.getMetaDataFileFolder(uri))) {
-            fs.mkdirSync(this.getMetaDataFileFolder(uri), { recursive: true });
+
+        // Create the metadata file folder if it doesn't exist
+        const metaDataFileFolder = this.getMetaDataFileFolder(uri);
+        if (!fs.existsSync(metaDataFileFolder)) {
+            fs.mkdirSync(metaDataFileFolder, { recursive: true });
         }
-        fs.writeFileSync(this.getMetaDataFilePath(uri), JSON.stringify(data));
+
+        // Write the metadata to the metadata file
+        fs.writeFileSync(this.getMetaDataFilePathWithExtension(uri), JSON.stringify(data));
     }
 
-    static update(file: File) {
+
+    async deleteDirectory(directoryPath: string) {
+        await fs.rm(directoryPath, (err) => {
+            console.error(err);
+        });
+    }
+
+    update(file: File) {
         let uri = this.getPath(file);
         let oldFile = this.read(uri);
         if (oldFile?.schema) {
@@ -69,59 +119,73 @@ export class FileSystemHelper {
         this.write(file);
     }
 
-    static writeFiles(files: File[]) {
+    writeFiles(files: File[]) {
         files.forEach(file => {
             let uri = this.getPath(file);
             if (uri) {
-                FileSystemHelper.write(file);
+                this.write(file);
             }
         });
     }
 
-    static clearFolder(folder: string, errCallback: fs.NoParamCallback = () => { }) {
-        fs.rm(folder, { recursive: true }, errCallback);
+    withExtension(workspaceItem: WorkSpaceItem): string {
+        return workspaceItem.name + ConfigHelper.getExtension(workspaceItem.type);
     }
 
-    static getBaseDir(uri: vscode.Uri): vscode.Uri {
+    getBaseDir(uri: vscode.Uri): vscode.Uri {
         return uri.with({ path: path.posix.dirname(uri.path) });
     }
 
+    // Path construction
 
-
-    static getDataFolder() {
-        return path.dirname(this.getCacheFolder());
-    }
-
-    static getMetaDataFileFolder(uri: vscode.Uri): string {
-        return path.join(this.getCacheFolder(), "cache", FileSystemHelper.root, path.basename(path.dirname(uri.path)));
-    }
-    
-    static getDataFileFolder(uri: vscode.Uri): string {
-        return path.dirname(uri.path).slice(1, path.dirname(uri.path).length);
-    }
-
-    static getMetaDataFilePath(uri: vscode.Uri): string {
-        return this.getFullMetaDataFilePath(uri) + ".metadata.json";
-    }
-
-    static getFullMetaDataFilePath(uri: vscode.Uri): string {
-        let filename = uri.toString().split('/').pop();
-        if (!filename) { return ""; }
-        return path.join(this.getMetaDataFileFolder(uri), filename);
-    }
-
-    static getFullDataFilePath(uri: vscode.Uri): string {
-        let filename = uri.toString().split('/').pop();
-        if (!filename) { return ""; }
-        return path.join(this.getDataFileFolder(uri), filename);
-    }
-
-    static getCacheFolder(): string {
+    get cacheFolder(): string {
         return path.join(os.tmpdir(), "creatiocode");
     }
 
+    getMetaDataFileFolder(uri: vscode.Uri): string {
+        return path.join(this.cacheFolder, "cache", this.root, path.basename(path.dirname(uri.path)));
+    }
 
-    static withExtension(workspaceItem: WorkSpaceItem): string {
-        return workspaceItem.name + ConfigHelper.getExtension(workspaceItem.type);
+    getDataFolder() {
+        const p = path.join(this.cacheFolder, "data", this.root);
+        if (!fs.existsSync(p)) {
+            fs.mkdirSync(p, { recursive: true });
+        }
+        return p;
+    }
+
+    getDataFileFolder(uri: vscode.Uri): string {
+        return path.join(this.getDataFolder(), path.basename(path.dirname(uri.path)));
+    }
+
+    getBaseDataFileFolder(): string {
+        // Create the folder if it doesn't exist
+        const folderPath = path.join(this.cacheFolder, this.root);
+        if (!fs.existsSync(folderPath)) {
+            fs.mkdirSync(folderPath, { recursive: true });
+        }
+        return folderPath;
+    }
+
+    getMetaDataFilePathWithExtension(uri: vscode.Uri): string {
+        return `${this.getFullMetaDataFilePath(uri)}.metadata.json`;
+    }
+
+    getFullMetaDataFilePath(uri: vscode.Uri): string {
+        // Get the filename from the URI
+        const filename = uri.toString().split('/').pop();
+        if (!filename) {
+            return "";
+        }
+        return path.join(this.getMetaDataFileFolder(uri), filename);
+    }
+
+    getFullDataFilePath(uri: vscode.Uri): string {
+        // Get the filename from the URI
+        const filename = uri.toString().split('/').pop();
+        if (!filename) {
+            return "";
+        }
+        return path.join(this.getDataFileFolder(uri), filename);
     }
 }

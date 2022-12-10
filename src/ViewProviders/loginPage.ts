@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { ConnectionInfo, CreatioClient } from "../api/creatioClient";
 import { ConfigHelper } from "../common/configurationHelper";
 import path from "path";
+import { CreatioFS } from "./fs/fileSystemProvider";
 
 export class LoginPanelProvider {
     loginPanel?: vscode.WebviewPanel;
@@ -28,17 +29,19 @@ export class LoginPanelProvider {
                 try {
                     let connectionInfo = new ConnectionInfo(message.connectionInfo.url, message.connectionInfo.login, message.connectionInfo.password);
                     ConfigHelper.setLoginData(connectionInfo);
-                    
+
                     if (await this.tryCreateConnection()) {
-                        vscode.commands.executeCommand('creatiocode.reloadCreatioWorkspace');
+
+                        await vscode.commands.executeCommand('creatiocode.reloadCreatioWorkspace');
+                        await vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(CreatioFS.getInstance().fsHelper.getDataFolder()), false);
                         this.loginPanel?.dispose();
-                    }     
+                    }
                 } catch (error: any) {
                     vscode.window.showErrorMessage(error.message);
                     return error;
                 }
                 break;
-            case 'getLoginData': 
+            case 'getLoginData':
                 this.loginPanel?.webview.postMessage(ConfigHelper.getLoginData() ? ConfigHelper.getLoginData() : {});
                 break;
 
@@ -69,53 +72,18 @@ export class LoginPanelProvider {
         <!DOCTYPE html>
         <html lang="en">
             <head>
-            <script src = '${this.getResourcePath("js", "loginPanel.js")}'></script>
-            <style>
-                body {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-direction: column;
-                    color: var(--vscode-editor-foreground);
-                    font-size: 16px;
-                }
-
-                input[type="text"], textarea  {
-                    display: flex;
-                    margin-bottom: 5px;
-                    background-color: var(--vscode-editor-background);
-                    border: 1px solid var(--vscode-editor-foreground);
-                    border-radius: 3px;
-                    color: var(--vscode-editor-foreground);
-                    font-size: 16px;
-                    width: 250px;
-                }
-
-                input[type="button"] {
-                    margin-top: 10px;
-                    background-color: var(--vscode-editor-background);
-                    border: 1px solid var(--vscode-editor-foreground);
-                    border-radius: 3px;
-                    font-size: 16px;
-                    color: var(--vscode-editor-foreground);
-                    padding: 5px;
-                    width: 250px;
-                    text-align: -webkit-center;
-                }
-            </style>
-                <meta charset="UTF-8">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none';">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <script src = '${this.getResourcePath("js", "homeView.js")}'></script>
+                <link rel="stylesheet" href="${this.getResourcePath("css", "homeView.css")}">
                 <title>Connection page</title>
             </head>
             <body>
-                <label for="url">Url:</label><br>
-                <input type="text" id="url" name="url" value=""><br>
-                <label for="login">Login:</label><br>
-                <input type="text" id="login" name="login" value=""><br>
-                <label for="password">Password:</label><br>
-                <input type="text" id="password" name="password" value=""><br>
-                <input type="button" id = "confirm" value="Connect">
+                <label for="url">Url:</label>
+                <input type="text" id="url" name="url" value="">
+                <label for="login">Login:</label>
+                <input type="text" id="login" name="login" value="">
+                <label for="password">Password:</label>
+                <input type="text" id="password" name="password" value="">
+                <input type="button" id = "connect" value="Connect">
             </body>
         </html>
         `;

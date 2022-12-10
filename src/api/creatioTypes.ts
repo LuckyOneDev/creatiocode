@@ -30,7 +30,9 @@ export enum ReqestType {
 	getSqlSchema,
 	setFeatureState,
 	startLogBroadcast,
-	stopLogBroadcast
+	stopLogBroadcast,
+	unlockPackageElements,
+	lockPackageElements
 }
 
 export interface ErrorInfo {
