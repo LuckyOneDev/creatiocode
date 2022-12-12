@@ -10,6 +10,7 @@ import { ConfigHelper } from './common/configurationHelper';
 import { HomeViewProvider } from './ViewProviders/homeViewProvider';
 import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './ViewProviders/fs/explorer';
 import { FileSystemHelper } from './ViewProviders/fs/fsHelper';
+import { CreatioCompletionProvider } from './completeonProvider';
 
 async function getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
 	const url = await vscode.window.showInputBox({
@@ -61,6 +62,7 @@ async function reloadWorkSpace() {
 		fs.client = client;
 		await fs.reload();
 		CreatioExplorer.getInstance().refresh();
+		await CreatioCompletionProvider.getInstance().init();
 		// vscode.workspace.updateWorkspaceFolders(0, 0,
 		// 	{
 		// 		uri: vscode.Uri.file(FileSystemHelper.getDataFolder())
@@ -198,6 +200,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.languages.registerDefinitionProvider('javascript', SchemaStructureDefinitionProvider.getInstance())
+	);
+
+	context.subscriptions.push(
+		vscode.languages.registerCompletionItemProvider('javascript', CreatioCompletionProvider.getInstance(), '.')
 	);
 
 	CreatioStatusBar.show('Creatio not initialized');

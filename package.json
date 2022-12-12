@@ -2,7 +2,7 @@
   "name": "creatiocode",
   "displayName": "CreatioCode",
   "description": "VsCode integration with Creatio web editor",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "repository": "https://github.com/LuckyOneDev/creatiocode",
   "publisher": "LuckyOne",
   "icon": "resources/media/icon.png",
@@ -258,7 +258,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run esbuild-base -- --minify",
-    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "esbuild": "npm run esbuild-base -- --sourcemap",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "test-compile": "tsc -p ./",
@@ -278,6 +278,7 @@
     "@types/vscode": "^1.73.1",
     "@typescript-eslint/eslint-plugin": "^5.43.0",
     "@typescript-eslint/parser": "^5.43.0",
+    "@typescript/lib-dom": "npm:@types/web@^0.0.84",
     "@vscode/test-electron": "^2.2.0",
     "esbuild": "^0.16.4",
     "eslint": "^8.28.0",
@@ -288,6 +289,8 @@
   "dependencies": {
     "@babel/parser": "^7.20.3",
     "@babel/traverse": "^7.20.1",
+    "browser-env": "^3.3.0",
+    "js-beautify": "^1.14.7",
     "rimraf": "^3.0.2",
     "ts-retry": "^4.1.0"
   }
