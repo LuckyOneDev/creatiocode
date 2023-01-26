@@ -82,8 +82,11 @@ export class ScriptFetcher {
 
     static getPageScrpts(page: string): string[] {
         let scriptTags = page.match(/<script.*?src=".*?".*?<\/script>/g);
-        if (!scriptTags) { return []; }
-        scriptTags = scriptTags.map(x => {
+        if (!scriptTags) { 
+            return []; 
+        }
+        
+        let stringTags = scriptTags.map(x => {
             const src = x.match(/src=".*?"/g);
             if (src) {
                 return src[0].replace('src="', '').replace('"', '');
@@ -91,10 +94,10 @@ export class ScriptFetcher {
             return '';
         });
 
-        if (!scriptTags) {
+        if (!stringTags) {
             return [];
         }
-        return scriptTags;
+        return stringTags;
     }
 
     static loadPage(path: string): Promise<string> {

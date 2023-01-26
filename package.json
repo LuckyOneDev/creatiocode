@@ -2,7 +2,7 @@
   "name": "creatiocode",
   "displayName": "CreatioCode",
   "description": "VsCode integration with Creatio web editor",
-  "version": "0.4.1",
+  "version": "0.4.3",
   "repository": "https://github.com/LuckyOneDev/creatiocode",
   "publisher": "LuckyOne",
   "icon": "resources/media/icon.png",
@@ -107,7 +107,7 @@
           "command": "creatiocode.createCreatioWorkspace",
           "when": "view =~ /creatiocode.Explorer/",
           "group": "navigation"
-        }, 
+        },
         {
           "command": "creatiocode.build",
           "when": "view =~ /creatiocode.Explorer/ && creatio.workspaceLoaded",
@@ -292,11 +292,7 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run esbuild-base -- --minify",
-    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
-    "esbuild": "npm run esbuild-base -- --sourcemap",
-    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
-    "test-compile": "tsc -p ./",
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
