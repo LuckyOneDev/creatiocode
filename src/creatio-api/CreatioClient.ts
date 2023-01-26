@@ -1,34 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import * as http from 'http';
-import { ClientPostResponse, CreatioResponse, GetPackagesResponse, GetSchemaResponse, GetWorkspaceItemsResponse, PackageMetaInfo, SaveSchemaResponse, Schema, WorkSpaceItem, SchemaType, ReqestType } from './creatioTypes';
-import { CreatioStatusBar } from '../common/statusBar';
+import { ClientPostResponse, CreatioResponse, GetPackagesResponse, GetSchemaResponse, GetWorkspaceItemsResponse, PackageMetaInfo, SaveSchemaResponse, Schema, WorkSpaceItem, SchemaType, ReqestType } from './CreatioTypeDefinitions';
+import { CreatioStatusBar } from '../common/CreatioStatusBar';
 import { retryAsync, wait } from 'ts-retry';
-import { createAsyncQueue } from './asyncQueue';
-import { ConfigHelper } from '../common/configurationHelper';
-
-export class ConnectionInfo {
-	url: string;
-	login: string;
-	password: string;
-
-	private hostURL: URL;
-
-	constructor(url: string, login: string, password: string) {
-		this.url = url;
-		this.login = login;
-		this.password = password;
-		this.hostURL = new URL(this.url);
-	}
-
-	public getHostName(): string {
-		return this.hostURL.hostname;
-	}
-
-	public getPort(): string {
-		return this.hostURL.port;
-	}
-}
+import { createAsyncQueue } from '../common/AsyncQueue';
+import { ConfigurationHelper } from '../common/ConfigurationHelper';
+import { ConnectionInfo } from './ConnectionInfo';
 
 export class CreatioClient {
 	readonly userAgent: string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36";
@@ -37,7 +15,6 @@ export class CreatioClient {
 	cookies: any;
 	BPMCSRF: string = '';
 	credentials: ConnectionInfo;
-	
 
 	isConnected(): boolean {
 		return this.BPMCSRF !== '';
@@ -95,7 +72,7 @@ export class CreatioClient {
 	}
 
 	private async tryLogin(data: any) {
-		let response: any = await retryAsync(() => this.post(this.getRequestUrl(ReqestType.login), data), ConfigHelper.getRetryPolicy());
+		let response: any = await retryAsync(() => this.post(this.getRequestUrl(ReqestType.login), data), ConfigurationHelper.getRetryPolicy());
 
 		if (response.response.statusCode !== 200) {
 			console.error(response.body);
@@ -262,12 +239,12 @@ export class CreatioClient {
 		return response ? response.body.packages.map((x: any) => { return x; }) : [];
 	}
 
-	async unlockSchema(items : WorkSpaceItem[]): Promise<CreatioResponse>  {
+	async unlockSchema(items: WorkSpaceItem[]): Promise<CreatioResponse> {
 		let response = await this.trySendApiRequest<CreatioResponse>(this.getRequestUrl(ReqestType.unlockPackageElements), items);
 		return response.body;
 	}
 
-	async lockSchema(items : WorkSpaceItem[]): Promise<CreatioResponse>  {
+	async lockSchema(items: WorkSpaceItem[]): Promise<CreatioResponse> {
 		let response = await this.trySendApiRequest<CreatioResponse>(this.getRequestUrl(ReqestType.lockPackageElements), items);
 		return response.body;
 	}
@@ -286,7 +263,7 @@ export class CreatioClient {
 			await this.login();
 		}
 
-		let response = await retryAsync(() => this.sendApiRequest(path, postData), ConfigHelper.getRetryPolicy());
+		let response = await retryAsync(() => this.sendApiRequest(path, postData), ConfigurationHelper.getRetryPolicy());
 
 		if (response.response.statusCode === 401) {
 			await this.login();
@@ -479,7 +456,7 @@ export class CreatioClient {
 			return err;
 		}
 	}
-	
+
 	async saveSchema(schema: Schema): Promise<SaveSchemaResponse | null> {
 		return await this.executeCreatioCommand<SaveSchemaResponse>(ReqestType.saveSchema, schema);
 	}

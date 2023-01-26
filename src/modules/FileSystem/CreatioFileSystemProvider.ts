@@ -2,12 +2,12 @@
 // TODO: Move filesystem code to separate 
 
 import * as vscode from 'vscode';
-import { CreatioClient } from '../../api/creatioClient';
-import { PackageMetaInfo, Schema, WorkSpaceItem, SchemaType } from '../../api/creatioTypes';
-import { ConfigHelper } from '../../common/configurationHelper';
-import { FileSystemHelper } from './fsHelper';
-import { CreatioCodeUtils } from '../../common/utils';
-import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './explorer';
+import { CreatioClient } from '../../creatio-api/CreatioClient';
+import { PackageMetaInfo, Schema, WorkSpaceItem, SchemaType } from '../../creatio-api/CreatioTypeDefinitions';
+import { ConfigurationHelper } from '../../common/ConfigurationHelper';
+import { FileSystemHelper } from './FileSystemHelper';
+import { CreatioCodeUtils } from '../../common/CreatioCodeUtils';
+import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './CreatioExplorer';
 import { utils } from 'mocha';
 
 export class File implements vscode.FileStat {
@@ -61,7 +61,7 @@ export class Directory implements vscode.FileStat {
 
 export type Entry = File | Directory;
 
-export class CreatioFS implements vscode.FileSystemProvider {
+export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
     async reloadFile(resourceUri: vscode.Uri) {
         vscode.window.withProgress(
             {
@@ -132,16 +132,16 @@ export class CreatioFS implements vscode.FileSystemProvider {
     private constructor(root: string) {
         this.fsHelper = new FileSystemHelper(root);
     }
-    private static instance: CreatioFS;
-    public static getInstance(): CreatioFS {
-        if (!CreatioFS.instance) {
-            CreatioFS.instance = new CreatioFS("");
+    private static instance: CreatioFileSystemProvider;
+    public static getInstance(): CreatioFileSystemProvider {
+        if (!CreatioFileSystemProvider.instance) {
+            CreatioFileSystemProvider.instance = new CreatioFileSystemProvider("");
         }
-        return CreatioFS.instance;
+        return CreatioFileSystemProvider.instance;
     }
 
     getUriByName(docName: string): vscode.Uri[] {
-        let files = this.files.filter(x => x.name === `${docName}${ConfigHelper.getExtension(SchemaType.clientUnit)}`);
+        let files = this.files.filter(x => x.name === `${docName}${ConfigurationHelper.getExtension(SchemaType.clientUnit)}`);
         return files.map(x => this.fsHelper.getPath(x));
     }
 
@@ -387,7 +387,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
         let localFile = this.fsHelper.read(uri);
 
         if (localFile && localFile.isLoaded() && !silent) {
-            if (ConfigHelper.isCarefulMode()) {
+            if (ConfigurationHelper.isCarefulMode()) {
                 // File is fully loaded. Comparing to server version
                 vscode.window.withProgress({
                     location: vscode.ProgressLocation.Window,
@@ -498,7 +498,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
                 });
 
                 this.files = this.files.filter(x => {
-                    return ConfigHelper.isFileTypeEnabled(x.workSpaceItem.type);
+                    return ConfigurationHelper.isFileTypeEnabled(x.workSpaceItem.type);
                 });
 
                 this.folders.forEach(element => {
@@ -552,7 +552,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
             }
         }
         if (uri instanceof String) {
-            ConfigHelper.getSchemaTypeByExtension(uri.toString());
+            ConfigurationHelper.getSchemaTypeByExtension(uri.toString());
         }
         return SchemaType.unknown;
     }
@@ -566,7 +566,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
         }
 
         if (!file && options.create) {
-            if (ConfigHelper.isFileTypeEnabled(this.getFileType(uri))) {
+            if (ConfigurationHelper.isFileTypeEnabled(this.getFileType(uri))) {
                 // Create file
                 // this._fireSoon({ type: vscode.FileChangeType.Created, uri });
                 throw new Error("Not implemented");
@@ -593,7 +593,7 @@ export class CreatioFS implements vscode.FileSystemProvider {
             if (!response) {
                 vscode.window.showErrorMessage("Error saving file");
             } else {
-                if (ConfigHelper.isCarefulMode()) {
+                if (ConfigurationHelper.isCarefulMode()) {
                     const serverSchema = await this.client!.getSchema(file.workSpaceItem.uId, file.workSpaceItem.type);
                     file.schema = serverSchema;
                     await this.changeMemFile(uri, file);

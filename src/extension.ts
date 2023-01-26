@@ -1,16 +1,17 @@
 import * as vscode from 'vscode';
-import { ConnectionInfo, CreatioClient } from './api/creatioClient';
-import { CreatioFS } from './ViewProviders/fs/fileSystemProvider';
-import { CreatioStatusBar } from './common/statusBar';
-import { SchemaMetaDataViewProvider } from './ViewProviders/schemaMetaDataViewProvider';
-import { InheritanceViewProvider } from './ViewProviders/inheritanceViewProvider';
-import { SchemaStructureDefinitionProvider, StructureViewProvider } from './ViewProviders/structureViewProvider';
-import { LoginPanelProvider } from './ViewProviders/loginPage';
-import { ConfigHelper } from './common/configurationHelper';
-import { HomeViewProvider } from './ViewProviders/homeViewProvider';
-import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './ViewProviders/fs/explorer';
-import { FileSystemHelper } from './ViewProviders/fs/fsHelper';
-import { CreatioCompletionProvider } from './completeonProvider';
+import { CreatioClient } from './creatio-api/CreatioClient';
+import { CreatioFileSystemProvider } from './modules/FileSystem/CreatioFileSystemProvider';
+import { CreatioStatusBar } from './common/CreatioStatusBar';
+import { SchemaMetaDataViewProvider } from './modules/Legacy/SchemaMetaDataViewProvider';
+import { InheritanceViewProvider } from './modules/RelatedFiles/InheritanceViewProvider';
+import { SchemaStructureDefinitionProvider, StructureViewProvider } from './modules/StructureView/StructureViewProvider';
+import { CreatioLoginPanel } from './modules/ConnectionPanel/CreatioLoginPanel';
+import { ConfigurationHelper } from './common/ConfigurationHelper';
+import { HomeViewProvider } from './modules/ConnectionPanel/HomeViewProvider';
+import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './modules/FileSystem/CreatioExplorer';
+import { FileSystemHelper } from './modules/FileSystem/FileSystemHelper';
+import { CreatioCompletionItemProvider } from './modules/Intellisense/CreatioCompletionItemProvider';
+import { ConnectionInfo } from './creatio-api/ConnectionInfo';
 
 async function getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
 	const url = await vscode.window.showInputBox({
@@ -41,7 +42,7 @@ async function getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
 }
 
 async function tryCreateConnection(): Promise<CreatioClient | null> {
-	let loginData: ConnectionInfo | undefined = ConfigHelper.getLoginData();
+	let loginData: ConnectionInfo | undefined = ConfigurationHelper.getLoginData();
 	if (loginData) {
 		loginData = new ConnectionInfo(loginData.url, loginData.login, loginData.password);
 		let client = new CreatioClient(loginData);
@@ -51,18 +52,18 @@ async function tryCreateConnection(): Promise<CreatioClient | null> {
 }
 
 async function reloadWorkSpace() {
-	let connectionInfo = ConfigHelper.getLoginData();
+	let connectionInfo = ConfigurationHelper.getLoginData();
 	if (!connectionInfo) {
 		return false;
 	}
 	
-	let fs = CreatioFS.getInstance();
+	let fs = CreatioFileSystemProvider.getInstance();
 	let client = await tryCreateConnection();
 	if (client) {
 		fs.client = client;
 		await fs.reload();
 		CreatioExplorer.getInstance().refresh();
-		await CreatioCompletionProvider.getInstance().init();
+		await CreatioCompletionItemProvider.getInstance().init();
 		// vscode.workspace.updateWorkspaceFolders(0, 0,
 		// 	{
 		// 		uri: vscode.Uri.file(FileSystemHelper.getDataFolder())
@@ -74,7 +75,7 @@ async function reloadWorkSpace() {
 }
 
 async function createWorkspace(context: vscode.ExtensionContext) {
-	let panelProvider = new LoginPanelProvider(context);
+	let panelProvider = new CreatioLoginPanel(context);
 	panelProvider.createPanel();
 }
 
@@ -96,38 +97,38 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 
 function registerContextMenus(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.cacheFolder', function (folder: CreatioExplorerItem) {
-		let fs = CreatioFS.getInstance();
+		let fs = CreatioFileSystemProvider.getInstance();
 		fs.cacheFolder(folder.resourceUri);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.revertSchema', async function (file: CreatioExplorerItem) {
-		let fs = CreatioFS.getInstance();
+		let fs = CreatioFileSystemProvider.getInstance();
 		await fs.restoreSchema(file.resourceUri);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.clearCache', async function () {
-		let fs = CreatioFS.getInstance();
+		let fs = CreatioFileSystemProvider.getInstance();
 		await fs.clearCache();
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.lockSchema', async (file: CreatioExplorerItem) => {
-		const fs = CreatioFS.getInstance();
+		const fs = CreatioFileSystemProvider.getInstance();
 		fs.lockSchema(file.resourceUri);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.unlockSchema', async (file: CreatioExplorerItem) => {
-		const fs = CreatioFS.getInstance();
+		const fs = CreatioFileSystemProvider.getInstance();
 		fs.unlockSchema(file.resourceUri);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.reloadSchema', async (file: CreatioExplorerItem) => {
-		const fs = CreatioFS.getInstance();
+		const fs = CreatioFileSystemProvider.getInstance();
 		await fs.reloadFile(file.resourceUri);
 	}));
 }
 
 export function activate(context: vscode.ExtensionContext) {
-	ConfigHelper.init(context);
+	ConfigurationHelper.init(context);
 	registerFileSystem(context);
 	registerContextMenus(context);
 
@@ -147,7 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
 		'creatio',
-		CreatioFS.getInstance(),
+		CreatioFileSystemProvider.getInstance(),
 		{ isCaseSensitive: true }
 	));
 	
@@ -203,7 +204,7 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.languages.registerCompletionItemProvider('javascript', CreatioCompletionProvider.getInstance(), '.')
+		vscode.languages.registerCompletionItemProvider('javascript', CreatioCompletionItemProvider.getInstance(), '.')
 	);
 
 	CreatioStatusBar.show('Creatio not initialized');

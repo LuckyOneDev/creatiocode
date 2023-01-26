@@ -1,7 +1,7 @@
 import path from 'path';
 import * as vscode from 'vscode';
 
-export abstract class CreatioWebViewProvider implements vscode.WebviewViewProvider {
+export abstract class GenericWebViewProvider implements vscode.WebviewViewProvider {
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
   }

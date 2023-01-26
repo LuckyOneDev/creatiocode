@@ -2,9 +2,9 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as os from 'os';
 import * as fs from 'fs';
-import { Entry, File } from './fileSystemProvider';
-import { ConfigHelper } from '../../common/configurationHelper';
-import { isSchema, isWorkspaceItem, Schema, WorkSpaceItem } from '../../api/creatioTypes';
+import { Entry, File } from './CreatioFileSystemProvider';
+import { ConfigurationHelper } from '../../common/ConfigurationHelper';
+import { isSchema, isWorkspaceItem, Schema, WorkSpaceItem } from '../../creatio-api/CreatioTypeDefinitions';
 
 export class FileSystemHelper {
     root: string;
@@ -129,7 +129,7 @@ export class FileSystemHelper {
     }
 
     withExtension(workspaceItem: WorkSpaceItem): string {
-        return workspaceItem.name + ConfigHelper.getExtension(workspaceItem.type);
+        return workspaceItem.name + ConfigurationHelper.getExtension(workspaceItem.type);
     }
 
     getBaseDir(uri: vscode.Uri): vscode.Uri {

@@ -1,6 +1,5 @@
-import { WorkSpaceItem } from '../api/creatioTypes';
-import { File } from './fs/fileSystemProvider';
-import { WorkspaceItemViewProvider } from './common/workspaceItemViewProvider';
+import { WorkspaceItemViewProvider } from '../../common/WebView/WorkspaceItemViewProvider';
+import { File } from '../FileSystem/CreatioFileSystemProvider';
 
 export class SchemaMetaDataViewProvider extends WorkspaceItemViewProvider {
   styles = ['schemaMetaDataView.css'];

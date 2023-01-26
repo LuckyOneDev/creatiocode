@@ -1,14 +1,15 @@
 import * as vscode from 'vscode';
-import { ConnectionInfo, CreatioClient } from '../api/creatioClient';
-import { ConfigHelper } from '../common/configurationHelper';
-import { CreatioWebViewProvider } from './common/creatioWebViewProvider';
+import { CreatioClient } from '../../creatio-api/CreatioClient';
+import { ConfigurationHelper } from '../../common/ConfigurationHelper';
+import { GenericWebViewProvider } from '../../common/WebView/GenericWebViewProvider';
+import { ConnectionInfo } from '../../creatio-api/ConnectionInfo';
 
-export class HomeViewProvider extends CreatioWebViewProvider {
+export class HomeViewProvider extends GenericWebViewProvider {
     scripts = ['homeView.js'];
     styles = ['homeView.css'];
 
     private async tryCreateConnection(): Promise<CreatioClient | null> {
-        let loginData: ConnectionInfo | undefined = ConfigHelper.getLoginData();
+        let loginData: ConnectionInfo | undefined = ConfigurationHelper.getLoginData();
         if (loginData) {
             loginData = new ConnectionInfo(loginData.url, loginData.login, loginData.password);
             let client = new CreatioClient(loginData);
@@ -22,7 +23,7 @@ export class HomeViewProvider extends CreatioWebViewProvider {
             case 'login':
                 try {
                     let connectionInfo = new ConnectionInfo(message.connectionInfo.url, message.connectionInfo.login, message.connectionInfo.password);
-                    ConfigHelper.setLoginData(connectionInfo);
+                    ConfigurationHelper.setLoginData(connectionInfo);
                     
                     if (await this.tryCreateConnection()) {
                         vscode.commands.executeCommand('creatiocode.reloadCreatioWorkspace');
@@ -33,7 +34,7 @@ export class HomeViewProvider extends CreatioWebViewProvider {
                 }
                 break;
             case 'getLoginData': 
-                this.webviewView?.webview.postMessage(ConfigHelper.getLoginData() ? ConfigHelper.getLoginData() : {});
+                this.webviewView?.webview.postMessage(ConfigurationHelper.getLoginData() ? ConfigurationHelper.getLoginData() : {});
                 break;
             case 'reload': 
                 vscode.commands.executeCommand('creatiocode.reloadCreatioWorkspace');

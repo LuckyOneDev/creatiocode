@@ -1,15 +1,15 @@
 import { RetryOptions } from 'ts-retry';
 import * as vscode from 'vscode';
-import { ConnectionInfo } from '../api/creatioClient';
-import { SchemaType, WorkSpaceItem } from '../api/creatioTypes';
+import { ConnectionInfo } from '../creatio-api/ConnectionInfo';
+import { SchemaType, WorkSpaceItem } from '../creatio-api/CreatioTypeDefinitions';
 
-export class ConfigHelper {
+export class ConfigurationHelper {
     static context: vscode.ExtensionContext;
     static config: vscode.WorkspaceConfiguration;
 
     static init(context: vscode.ExtensionContext) {
-        ConfigHelper.context = context;
-        ConfigHelper.config = vscode.workspace.getConfiguration("creatiocode");
+        ConfigurationHelper.context = context;
+        ConfigurationHelper.config = vscode.workspace.getConfiguration("creatiocode");
     }
 
     static getSchemaTypeByExtension(path: string): SchemaType {
@@ -39,23 +39,23 @@ export class ConfigHelper {
     static getExtension(type: SchemaType): string | undefined {
         switch (type) {
             case SchemaType.clientUnit:
-                return ConfigHelper.config.get("fileTypes.ClientUnit.Extension");
+                return ConfigurationHelper.config.get("fileTypes.ClientUnit.Extension");
             case SchemaType.case:
-                return ConfigHelper.config.get("fileTypes.Case.Extension");
+                return ConfigurationHelper.config.get("fileTypes.Case.Extension");
             case SchemaType.data:
-                return ConfigHelper.config.get("fileTypes.Data.Extension");
+                return ConfigurationHelper.config.get("fileTypes.Data.Extension");
             case SchemaType.dll:
-                return ConfigHelper.config.get("fileTypes.Dll.Extension");
+                return ConfigurationHelper.config.get("fileTypes.Dll.Extension");
             case SchemaType.entity:
-                return ConfigHelper.config.get("fileTypes.Entity.Extension");
+                return ConfigurationHelper.config.get("fileTypes.Entity.Extension");
             case SchemaType.sourceCode:
-                return ConfigHelper.config.get("fileTypes.SourceCode.Extension");
+                return ConfigurationHelper.config.get("fileTypes.SourceCode.Extension");
             case SchemaType.sqlScript:
-                return ConfigHelper.config.get("fileTypes.SqlScript.Extension");
+                return ConfigurationHelper.config.get("fileTypes.SqlScript.Extension");
             case SchemaType.process:
-                return ConfigHelper.config.get("fileTypes.Process.Extension");
+                return ConfigurationHelper.config.get("fileTypes.Process.Extension");
             case SchemaType.processUserTask:
-                return ConfigHelper.config.get("fileTypes.ProcessUserTask.Extension");
+                return ConfigurationHelper.config.get("fileTypes.ProcessUserTask.Extension");
             default:
                 return undefined;
         }
@@ -64,30 +64,30 @@ export class ConfigHelper {
     static isFileTypeEnabled(type: SchemaType) {
         switch (type) {
             case SchemaType.clientUnit:
-                return ConfigHelper.config.get("fileTypes.ClientUnit.Enabled");
+                return ConfigurationHelper.config.get("fileTypes.ClientUnit.Enabled");
             case SchemaType.case:
-                return ConfigHelper.config.get("fileTypes.Case.Enabled");
+                return ConfigurationHelper.config.get("fileTypes.Case.Enabled");
             case SchemaType.data:
-                return ConfigHelper.config.get("fileTypes.Data.Enabled");
+                return ConfigurationHelper.config.get("fileTypes.Data.Enabled");
             case SchemaType.dll:
-                return ConfigHelper.config.get("fileTypes.Dll.Enabled");
+                return ConfigurationHelper.config.get("fileTypes.Dll.Enabled");
             case SchemaType.entity:
-                return ConfigHelper.config.get("fileTypes.Entity.Enabled");
+                return ConfigurationHelper.config.get("fileTypes.Entity.Enabled");
             case SchemaType.sourceCode:
-                return ConfigHelper.config.get("fileTypes.SourceCode.Enabled");
+                return ConfigurationHelper.config.get("fileTypes.SourceCode.Enabled");
             case SchemaType.sqlScript:
-                return ConfigHelper.config.get("fileTypes.SqlScript.Enabled");
+                return ConfigurationHelper.config.get("fileTypes.SqlScript.Enabled");
             case SchemaType.process:
-                return ConfigHelper.config.get("fileTypes.Process.Enabled");
+                return ConfigurationHelper.config.get("fileTypes.Process.Enabled");
             case SchemaType.processUserTask:
-                return ConfigHelper.config.get("fileTypes.ProcessUserTask.Enabled");
+                return ConfigurationHelper.config.get("fileTypes.ProcessUserTask.Enabled");
             default:
                 return false;
         }
     }
 
     static getLoginData(): ConnectionInfo | undefined {
-        let loginData: ConnectionInfo | undefined = ConfigHelper.context.globalState.get("loginData");
+        let loginData: ConnectionInfo | undefined = ConfigurationHelper.context.globalState.get("loginData");
         if (loginData) {
            return new ConnectionInfo(loginData.url, loginData.login, loginData.password);
         }
@@ -95,7 +95,7 @@ export class ConfigHelper {
     }
 
     static setLoginData(loginData: ConnectionInfo) {
-        ConfigHelper.context.globalState.update("loginData", loginData);
+        ConfigurationHelper.context.globalState.update("loginData", loginData);
     }
 
     static isCarefulMode(): boolean {

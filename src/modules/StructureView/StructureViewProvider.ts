@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { CreatioAstNode, CreatioAstStructure } from "../common/ast";
-import { CreatioStatusBar } from "../common/statusBar";
-import { CreatioFS } from "./fs/fileSystemProvider";
+import { CreatioAstNode, CreatioAstStructure } from "./CreatioAst";
+import { CreatioStatusBar } from "../../common/CreatioStatusBar";
+import { CreatioFileSystemProvider } from "../FileSystem/CreatioFileSystemProvider";
 
 export class SchemaStructureDefinitionProvider implements vscode.DefinitionProvider {
 	// Singleton
@@ -20,7 +20,7 @@ export class SchemaStructureDefinitionProvider implements vscode.DefinitionProvi
 		return new Promise((resolve, reject) => {
 			let fileName = document.getText(document.getWordRangeAtPosition(position));
 			// Temporary fast search
-			let files = CreatioFS.getInstance().getUriByName(fileName);
+			let files = CreatioFileSystemProvider.getInstance().getUriByName(fileName);
 			if (files.length > 0) {
 				// @ts-ignore
 				resolve(new vscode.Location(files.find(x => x.path !== document.uri.path) || files[0], new vscode.Position(0, 0)));

@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
-import { CreatioFS, File } from './fs/fileSystemProvider';
-import { Schema, WorkSpaceItem } from '../api/creatioTypes';
-import { WorkspaceItemViewProvider } from './common/workspaceItemViewProvider';
-import { FileSystemHelper } from './fs/fsHelper';
+import { CreatioFileSystemProvider, File } from '../FileSystem/CreatioFileSystemProvider';
+import { WorkSpaceItem } from '../../creatio-api/CreatioTypeDefinitions';
+import { WorkspaceItemViewProvider } from '../../common/WebView/WorkspaceItemViewProvider';
 
 export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     scripts = ['inheritanceView.js'];
@@ -17,7 +16,7 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     protected onDidReceiveMessage = (message: any) => {
         switch (message.command) {
             case 'openSchema':
-                let uri = CreatioFS.getInstance().getSchemaUri(message.id);
+                let uri = CreatioFileSystemProvider.getInstance().getSchemaUri(message.id);
                 vscode.workspace.openTextDocument(uri!).then(document => {
                     vscode.window.showTextDocument(document);
                 });
@@ -44,11 +43,11 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
             this.cancelationTokenSource = new vscode.CancellationTokenSource();
 
             // Get parent files and write them to filesystem
-            CreatioFS.getInstance().getParentFiles(this.currentFile, this.cancelationTokenSource.token).then((resp) => {
+            CreatioFileSystemProvider.getInstance().getParentFiles(this.currentFile, this.cancelationTokenSource.token).then((resp) => {
                 this.files = resp.files;
                 if (!resp.cancelled) {
                     this.reloadWebview();
-                    CreatioFS.getInstance().fsHelper.writeFiles(resp.files);
+                    CreatioFileSystemProvider.getInstance().fsHelper.writeFiles(resp.files);
                 }
             });
             return `<span class="loader"></span>`;

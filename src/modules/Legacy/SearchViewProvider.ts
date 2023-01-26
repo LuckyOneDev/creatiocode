@@ -1,6 +1,6 @@
-import { CreatioWebViewProvider } from "./common/creatioWebViewProvider";
+import { GenericWebViewProvider } from "../../common/WebView/GenericWebViewProvider";
 
-export class SearchViewProvider extends CreatioWebViewProvider {
+export class SearchViewProvider extends GenericWebViewProvider {
     styles = ['loader.css', 'searchView.css'];
 
     protected getBody(): string {

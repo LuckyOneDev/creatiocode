@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import * as vscode from 'vscode';
 import * as http from 'http';
 import * as vm from 'vm';
-import { CreatioFS } from './ViewProviders/fs/fileSystemProvider';
+import { CreatioFileSystemProvider } from '../FileSystem/CreatioFileSystemProvider';
 
 const browserEnv = require('browser-env');
 var beautify = require('js-beautify').js;
 
-class ScriptFetcher {
+export class ScriptFetcher {
     static async getScriptEnviroment() {
         const scripts = await this.loadAllScripts('/0/Nui/ViewModule.aspx');
         let eviroment = vm.createContext(browserEnv());
@@ -56,7 +55,7 @@ class ScriptFetcher {
     static async loadScript(path: string): Promise<string> {
         return new Promise((resolve, reject) => {
             const options: http.RequestOptions = {
-                host: CreatioFS.getInstance().client?.credentials.getHostName(),
+                host: CreatioFileSystemProvider.getInstance().client?.credentials.getHostName(),
                 path: path,
                 method: 'GET',
             };
@@ -102,7 +101,7 @@ class ScriptFetcher {
     static loadPage(path: string): Promise<string> {
         return new Promise((resolve, reject) => {
             const options: http.RequestOptions = {
-                host: CreatioFS.getInstance().client?.credentials.getHostName(),
+                host: CreatioFileSystemProvider.getInstance().client?.credentials.getHostName(),
                 path: path,
                 method: 'GET',
                 headers: {
@@ -110,7 +109,7 @@ class ScriptFetcher {
                     'Accept-Language': "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
                     "cache-control": "max-age=0",
                     "upgrade-insecure-requests": "1",
-                    "Cookie": CreatioFS.getInstance().client?.cookies.join(';'),
+                    "Cookie": CreatioFileSystemProvider.getInstance().client?.cookies.join(';'),
                     "Connection": "keep-alive",
                 },
             };
@@ -133,89 +132,5 @@ class ScriptFetcher {
             req.on('error', reject);
             req.end();
         });
-    }
-}
-
-export class CreatioCompletionProvider implements vscode.CompletionItemProvider<vscode.CompletionItem> {
-    env?: { Terrasoft: any; Ext: any; };
-
-    private static instance: CreatioCompletionProvider;
-    public static getInstance(): CreatioCompletionProvider {
-        if (!CreatioCompletionProvider.instance) {
-            CreatioCompletionProvider.instance = new CreatioCompletionProvider();
-        }
-        return CreatioCompletionProvider.instance;
-    }
-
-    async init() {
-        vscode.window.withProgress(
-            {
-                location: vscode.ProgressLocation.Window,
-                title: "Loading advanced intellisense",
-            },
-            async (progress, token) => {
-                progress.report({
-                    message: "Loading scripts",
-                    increment: 0
-                });
-                this.env = await ScriptFetcher.getScriptEnviroment();
-            }
-        );
-    }
-
-    getCompletionItems(objectChain: string[]): vscode.CompletionItem[] {
-        const completionItems: vscode.CompletionItem[] = [];
-        let currentObject: any = this.env;
-        for (let i = 0; i < objectChain.length && currentObject; i++) {
-            const nextObj = objectChain[i];
-            currentObject = currentObject[nextObj];
-        }
-        if (currentObject) {
-            Object.entries(currentObject).forEach((entry) => {
-                const key = entry[0];
-                const value = entry[1];
-                const completionItem = new vscode.CompletionItem(key);
-                completionItem.kind = this.mapJsTypeToCompletionItemKind(typeof(value));
-                completionItem.documentation = "Dynamically loaded from server";
-                completionItem.preselect = true;
-                completionItems.push(completionItem);
-            });
-        }
-        return completionItems;
-    }
-
-    private mapJsTypeToCompletionItemKind(type: string): vscode.CompletionItemKind {
-        switch (type) {
-            case 'string':
-                return vscode.CompletionItemKind.Property;
-            case 'number':
-                return vscode.CompletionItemKind.Property;
-            case 'boolean':
-                return vscode.CompletionItemKind.Property;
-            case 'function':
-                return vscode.CompletionItemKind.Method;
-            case 'object':
-                return vscode.CompletionItemKind.Class;
-            default:
-                return vscode.CompletionItemKind.Text;
-        }
-    }
-
-    private parseObjectString(objectString: string): string[] {
-        const cleanString = objectString.replace(/\s+/, "");
-        return cleanString.split('.').filter(x => x.length > 0);
-    }
-
-    provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext):  vscode.CompletionItem[] { 
-        const objectChain = this.parseObjectString(document.lineAt(position).text.substring(0, position.character));
-        
-        if (objectChain.length > 0 && this.env) {
-            // Check if root object is in env
-            if (Object.keys(this.env).includes(objectChain[0])) {
-                return this.getCompletionItems(objectChain);
-            }
-        }
-
-        return [];
     }
 }

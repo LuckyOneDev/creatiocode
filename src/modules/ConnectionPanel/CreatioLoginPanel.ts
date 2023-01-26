@@ -1,11 +1,12 @@
-import { CreatioWebViewProvider } from "./common/creatioWebViewProvider";
+import { GenericWebViewProvider } from "../../common/WebView/GenericWebViewProvider";
 import * as vscode from 'vscode';
-import { ConnectionInfo, CreatioClient } from "../api/creatioClient";
-import { ConfigHelper } from "../common/configurationHelper";
+import { CreatioClient } from "../../creatio-api/CreatioClient";
+import { ConfigurationHelper } from "../../common/ConfigurationHelper";
 import path from "path";
-import { CreatioFS } from "./fs/fileSystemProvider";
+import { CreatioFileSystemProvider } from "../FileSystem/CreatioFileSystemProvider";
+import { ConnectionInfo } from "../../creatio-api/ConnectionInfo";
 
-export class LoginPanelProvider {
+export class CreatioLoginPanel {
     loginPanel?: vscode.WebviewPanel;
     context: vscode.ExtensionContext;
 
@@ -14,7 +15,7 @@ export class LoginPanelProvider {
     }
 
     private async tryCreateConnection(): Promise<CreatioClient | null> {
-        let loginData: ConnectionInfo | undefined = ConfigHelper.getLoginData();
+        let loginData: ConnectionInfo | undefined = ConfigurationHelper.getLoginData();
         if (loginData) {
             loginData = new ConnectionInfo(loginData.url, loginData.login, loginData.password);
             let client = new CreatioClient(loginData);
@@ -28,12 +29,12 @@ export class LoginPanelProvider {
             case 'login':
                 try {
                     let connectionInfo = new ConnectionInfo(message.connectionInfo.url, message.connectionInfo.login, message.connectionInfo.password);
-                    ConfigHelper.setLoginData(connectionInfo);
+                    ConfigurationHelper.setLoginData(connectionInfo);
 
                     if (await this.tryCreateConnection()) {
 
                         await vscode.commands.executeCommand('creatiocode.reloadCreatioWorkspace');
-                        await vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(CreatioFS.getInstance().fsHelper.getDataFolder()), false);
+                        await vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(CreatioFileSystemProvider.getInstance().fsHelper.getDataFolder()), false);
                         this.loginPanel?.dispose();
                     }
                 } catch (error: any) {
@@ -42,7 +43,7 @@ export class LoginPanelProvider {
                 }
                 break;
             case 'getLoginData':
-                this.loginPanel?.webview.postMessage(ConfigHelper.getLoginData() ? ConfigHelper.getLoginData() : {});
+                this.loginPanel?.webview.postMessage(ConfigurationHelper.getLoginData() ? ConfigurationHelper.getLoginData() : {});
                 break;
 
         }
