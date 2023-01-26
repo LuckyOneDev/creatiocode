@@ -1,0 +1,18 @@
+.center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table, th, td {
+    border: 1px solid;
+    text-align: center;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 5px;
+}
+  
+tr:nth-child(odd) {
+    background-color: var(--vscode-editor-background);
+}

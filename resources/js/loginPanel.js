@@ -1,5 +1,5 @@
 var vscode = acquireVsCodeApi();
-function postVscMessage(message) {
+function postVSCMessage(message) {
     return new Promise((resolve, reject) => {    
         window.addEventListener('message', (event) => {
             resolve(event.data);
@@ -19,7 +19,7 @@ function validateLogin() {
 }
 
 window.onload = async function () {
-    let loginData = await postVscMessage({
+    let loginData = await postVSCMessage({
         command: 'getLoginData'
     });
 
@@ -31,7 +31,7 @@ window.onload = async function () {
 
     document.getElementById('confirm').onclick = function () {
         if (validateLogin()) {
-            postVscMessage({
+            postVSCMessage({
                 command: 'login',
                 connectionInfo: {
                     url: document.getElementById('url').value,

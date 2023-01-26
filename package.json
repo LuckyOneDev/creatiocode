@@ -36,6 +36,14 @@
         }
       },
       {
+        "command": "creatiocode.generateChanges",
+        "title": "Push to SVN",
+        "icon": {
+          "light": "resources/media/light/build.svg",
+          "dark": "resources/media/dark/build.svg"
+        }
+      },
+      {
         "command": "creatiocode.reloadCreatioWorkspace",
         "title": "Reload Creatio workspace",
         "icon": {
@@ -97,7 +105,12 @@
         {
           "when": "view == creatiocode.Explorer && viewItem =~ /CreatioPackage/",
           "command": "creatiocode.cacheFolder",
-          "group": "navigation"
+          "group": "navigation@2"
+        },
+        {
+          "when": "view == creatiocode.Explorer && viewItem =~ /CreatioPackage/",
+          "command": "creatiocode.generateChanges",
+          "group": "navigation@1"
         },
         {
           "when": "view == creatiocode.Explorer && viewItem =~ /CreatioSchema/",

@@ -64,11 +64,7 @@ async function reloadWorkSpace() {
 		await fs.reload();
 		CreatioExplorer.getInstance().refresh();
 		await CreatioCompletionItemProvider.getInstance().init();
-		// vscode.workspace.updateWorkspaceFolders(0, 0,
-		// 	{
-		// 		uri: vscode.Uri.file(FileSystemHelper.getDataFolder())
-		// 	}
-		// );
+		vscode.commands.executeCommand('setContext', 'creatio.workspaceLoaded', true);
 	}
 
 	return client !== null;
@@ -95,6 +91,7 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 	// ));
 }
 
+
 function registerContextMenus(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.cacheFolder', function (folder: CreatioExplorerItem) {
 		let fs = CreatioFileSystemProvider.getInstance();
@@ -105,6 +102,12 @@ function registerContextMenus(context: vscode.ExtensionContext) {
 		let fs = CreatioFileSystemProvider.getInstance();
 		await fs.restoreSchema(file.resourceUri);
 	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.generateChanges', async (folder: CreatioExplorerItem) => {
+		let fs = CreatioFileSystemProvider.getInstance();
+		await fs.generateChanges(folder.resourceUri, context);
+	}));
+	
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.clearCache', async function () {
 		let fs = CreatioFileSystemProvider.getInstance();
@@ -132,26 +135,13 @@ export function activate(context: vscode.ExtensionContext) {
 	registerFileSystem(context);
 	registerContextMenus(context);
 
-	// context.subscriptions.push(vscode.commands.registerCommand('creatiocode.executeSQL', async () => {
-	// 	const client = CreatioFS.getInstance().client;
-	// 	if (client) {
-	// 		let sql = await vscode.window.showInputBox({
-	// 			title: 'Creatio sql',
-	// 			value: "select * from SysUser"
-	// 		});
-	// 		if (sql) {
-	// 			let result = await client.selectQuery(sql);
-	// 			vscode.window.showInformationMessage(result);
-	// 		}
-	// 	}
-	// }));
-
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
 		'creatio',
 		CreatioFileSystemProvider.getInstance(),
 		{ isCaseSensitive: true }
 	));
-	
+
+
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider("creatioFileInfo", new SchemaMetaDataViewProvider(context))
 	);

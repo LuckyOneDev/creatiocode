@@ -1,5 +1,6 @@
 import * as http from 'http';
 
+
 export enum ReqestType {
 	getCurrentUserInfo,
 	getApplicationInfo,
@@ -32,13 +33,25 @@ export enum ReqestType {
 	startLogBroadcast,
 	stopLogBroadcast,
 	unlockPackageElements,
-	lockPackageElements
+	lockPackageElements,
+	generateChanges
+}
+
+export enum ChangeState {
+	unchanged = 0,
+	added = 1,
+	changed = 2,
 }
 
 export interface ErrorInfo {
 	errorCode: any;
 	message: any;
 	stackTrace: any;
+}
+
+export enum ChangeStateSchemaType {
+	schemaResource = 6,
+	schema = 1
 }
 
 export enum SchemaType {
@@ -77,6 +90,35 @@ export interface CreatioResponse {
 
 export interface GetPackagesResponse extends CreatioResponse {
 	packages: Array<WorkSpaceItem>;
+}
+
+export interface PackageChangeEntryItem {
+	cultureName: string | null;
+	name : string;
+	state: ChangeState;
+	stateCaption: string;
+	stateName: string;
+	type: number;
+	typeCaption: string;
+	typeName : string;
+	uId: string;
+}
+
+export interface PackageChangeEntry {
+	items: Array<PackageChangeEntryItem>;
+	name : string;
+	state: ChangeState;
+	stateCaption: string;
+	stateName: string;
+	type: number;
+	typeCaption: string;
+	typeName : string;
+	uId: string;
+}
+
+export interface GenerateChangesResponse extends CreatioResponse {
+	changes: Array<PackageChangeEntry>;
+	errors: Array<any>;
 }
 
 export interface GetWorkspaceItemsResponse extends CreatioResponse {

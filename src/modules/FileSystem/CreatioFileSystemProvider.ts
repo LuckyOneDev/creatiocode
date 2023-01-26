@@ -8,6 +8,7 @@ import { ConfigurationHelper } from '../../common/ConfigurationHelper';
 import { FileSystemHelper } from './FileSystemHelper';
 import { CreatioCodeUtils } from '../../common/CreatioCodeUtils';
 import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './CreatioExplorer';
+import { PushToSVNPanel } from '../SVN/PushSVNPanel';
 export class File implements vscode.FileStat {
 
     type: vscode.FileType;
@@ -60,6 +61,27 @@ export class Directory implements vscode.FileStat {
 export type Entry = File | Directory;
 
 export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
+    async generateChanges(resourceUri: vscode.Uri, context : vscode.ExtensionContext) {
+        vscode.window.withProgress(
+            {
+                "location": vscode.ProgressLocation.Notification,
+                "title": "Loading diff"
+            }, async (progress, token) => {
+                let memDir = this.getMemFolder(resourceUri);
+                if (!memDir || !memDir.package) return;
+                let changes = await this.client?.generateChanges(memDir.package.name);
+                return changes;
+            }).then(changes => {
+                if (changes) {
+                    // Open webview
+                    let panel = new PushToSVNPanel(context, changes);
+                    panel.createPanel();
+                } else {
+                    vscode.window.showErrorMessage("Changes could not be generated");
+                }
+            });
+    }
+
     async reloadFile(resourceUri: vscode.Uri) {
         vscode.window.withProgress(
             {
@@ -77,7 +99,6 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                     throw vscode.FileSystemError.FileNotFound();
                 }
             });
-
     }
 
     async unlockSchema(resourceUri: vscode.Uri) {

@@ -6,16 +6,12 @@ import path from "path";
 import { CreatioFileSystemProvider } from "../FileSystem/CreatioFileSystemProvider";
 import { ConnectionInfo } from "../../creatio-api/ConnectionInfo";
 import { CreatioCodeUtils } from "../../common/CreatioCodeUtils";
+import { GenericWebViewPanel } from "../../common/WebView/GenericWebViewPanel";
 
-export class CreatioLoginPanel {
-    loginPanel?: vscode.WebviewPanel;
-    context: vscode.ExtensionContext;
-
-    constructor(context: vscode.ExtensionContext) {
-        this.context = context;
-    }
-
-    private async tryCreateConnection(): Promise<CreatioClient | null> {
+export class CreatioLoginPanel extends GenericWebViewPanel {
+    protected webViewId = "creatiocode.creatioLoginPanel";
+    protected title = "Creatio Login";
+    protected async tryCreateConnection(): Promise<CreatioClient | null> {
         let loginData: ConnectionInfo | undefined = ConfigurationHelper.getLoginData();
         if (loginData) {
             loginData = new ConnectionInfo(loginData.url, loginData.login, loginData.password);
@@ -25,7 +21,7 @@ export class CreatioLoginPanel {
         return null;
     }
 
-    private onDidReceiveMessage = async (message: any) => {
+    protected onDidReceiveMessage = async (message: any) => {
         switch (message.command) {
             case 'login':
                 try {
@@ -45,7 +41,7 @@ export class CreatioLoginPanel {
                                 await vscode.commands.executeCommand("vscode.openFolder", targetUri , false);
                             });
                         }
-                        this.loginPanel?.dispose();
+                        this.dispose();
                     }
                 } catch (error: any) {
                     vscode.window.showErrorMessage(error.message);
@@ -53,32 +49,13 @@ export class CreatioLoginPanel {
                 }
                 break;
             case 'getLoginData':
-                this.loginPanel?.webview.postMessage(ConfigurationHelper.getLoginData() ? ConfigurationHelper.getLoginData() : {});
+                this.postMessage(ConfigurationHelper.getLoginData() ? ConfigurationHelper.getLoginData() : {});
                 break;
 
         }
     };
 
-    public createPanel() {
-        this.loginPanel = vscode.window.createWebviewPanel(
-            'creatiocode.loginPage',
-            'Log in to Creatio',
-            vscode.ViewColumn.One,
-            {
-                enableScripts: true
-            }
-        );
-
-        this.loginPanel.webview.onDidReceiveMessage(this.onDidReceiveMessage);
-        this.loginPanel.webview.html = this.getWebviewContent();
-    }
-
-    public getResourcePath(folder: string, fileName: string): vscode.Uri | undefined {
-        const scriptPathOnDisk = vscode.Uri.file(path.join(this.context.extensionPath, "resources", folder, fileName));
-        return this.loginPanel?.webview.asWebviewUri(scriptPathOnDisk);
-    }
-
-    private getWebviewContent(): string {
+    protected getWebviewContent(): string {
         return `
         <!DOCTYPE html>
         <html lang="en">

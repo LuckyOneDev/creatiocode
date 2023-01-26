@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import * as http from 'http';
-import { ClientPostResponse, CreatioResponse, GetPackagesResponse, GetSchemaResponse, GetWorkspaceItemsResponse, PackageMetaInfo, SaveSchemaResponse, Schema, WorkSpaceItem, SchemaType, ReqestType } from './CreatioTypeDefinitions';
+import * as CreatioType from './CreatioTypeDefinitions';
 import { CreatioStatusBar } from '../common/CreatioStatusBar';
 import { retryAsync, wait } from 'ts-retry';
 import { createAsyncQueue } from '../common/AsyncQueue';
@@ -20,47 +20,48 @@ export class CreatioClient {
 		return this.BPMCSRF !== '';
 	}
 
-	getRequestUrl(type: ReqestType): string {
+	getRequestUrl(type: CreatioType.ReqestType): string {
 		switch (type) {
-			case ReqestType.getCurrentUserInfo: return '/0/ServiceModel/UserInfoService.svc/GetCurrentUserInfo';
-			case ReqestType.getApplicationInfo: return '/0/ServiceModel/ApplicationInfoService.svc/GetApplicationInfo';
-			case ReqestType.getPackages: return '/0/ServiceModel/PackageService.svc/GetPackages';
-			case ReqestType.getWorkspaceItems: return '/0/ServiceModel/WorkspaceExplorerService.svc/GetWorkspaceItems';
-			case ReqestType.revertElements: return '/0/ServiceModel/SourceControlService.svc/RevertElements';
-			case ReqestType.getPackageState: return '/0/ServiceModel/SourceControlService.svc/GetPackageState';
-			case ReqestType.getSchemaMetaData: return '/0/ServiceModel/SchemaMetaDataService.svc/GetSchemaMetaData';
-			case ReqestType.saveSchema: return '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/SaveSchema';
-			case ReqestType.getAvailableReferenceSchemas: return '/0/ServiceModel/EntitySchemaDesignerService.svc/GetAvailableReferenceSchemas';
-			case ReqestType.login: return '/ServiceModel/AuthService.svc/Login';
-			case ReqestType.selectQuery: return '/DataService/json/SyncReply/SelectQuery';
-			case ReqestType.insertQuery: return '/DataService/json/SyncReply/InsertQuery';
-			case ReqestType.deleteQuery: return '/DataService/json/SyncReply/DeleteQuery';
-			case ReqestType.updateQuery: return '/DataService/json/SyncReply/UpdateQuery';
-			case ReqestType.runProcess: return '/0/ServiceModel/ProcessEngineService.svc/RunProcess';
-			case ReqestType.processSchemaRequest: return '/0/ServiceModel/ProcessSchemaRequestService.svc/ProcessSchemaRequest';
-			case ReqestType.processSchemaParameter: return '/0/DataService/json/SyncReply/ProcessSchemaParameter';
-			case ReqestType.runtimeEntitySchemaRequest: return '/0/DataService/json/SyncReply/RuntimeEntitySchemaRequest';
-			case ReqestType.entitySchemaManagerRequest: return '/0/DataService/json/SyncReply/EntitySchemaManagerRequest';
-			case ReqestType.restartApp: return '/0/ServiceModel/AppInstallerService.svc/RestartApp';
-			case ReqestType.clearRedisDb: return '/0/ServiceModel/AppInstallerService.svc/ClearRedisDb';
-			case ReqestType.executeSqlScript: return '/0/rest/CreatioApiGateway/ExecuteSqlScript';
-			case ReqestType.pingWebHost: return '/0/api/HealthCheck/Ping';
-			case ReqestType.pingWebApp: return '/api/HealthCheck/Ping';
-			case ReqestType.getPackageProperties: return '/0/ServiceModel/PackageService.svc/GetPackageProperties';
-			case ReqestType.getClientUnitSchema: return '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/GetSchema';
-			case ReqestType.getSqlSchema: return '/0/ServiceModel/SqlScriptSchemaDesignerService.svc/GetSchema';
-			case ReqestType.setFeatureState: return '/0/rest/FeatureStateService/SetFeatureState';
-			case ReqestType.startLogBroadcast: return '/0/rest/ATFLogService/StartLogBroadcast';
-			case ReqestType.stopLogBroadcast: return '/0/rest/ATFLogService/ResetConfiguration';
-			case ReqestType.unlockPackageElements: return '/0/ServiceModel/SourceControlService.svc/UnlockPackageElements';
-			case ReqestType.lockPackageElements: return '/0/ServiceModel/SourceControlService.svc/LockPackageElements';
+			case CreatioType.ReqestType.getCurrentUserInfo: return '/0/ServiceModel/UserInfoService.svc/GetCurrentUserInfo';
+			case CreatioType.ReqestType.getApplicationInfo: return '/0/ServiceModel/ApplicationInfoService.svc/GetApplicationInfo';
+			case CreatioType.ReqestType.getPackages: return '/0/ServiceModel/PackageService.svc/GetPackages';
+			case CreatioType.ReqestType.getWorkspaceItems: return '/0/ServiceModel/WorkspaceExplorerService.svc/GetWorkspaceItems';
+			case CreatioType.ReqestType.revertElements: return '/0/ServiceModel/SourceControlService.svc/RevertElements';
+			case CreatioType.ReqestType.getPackageState: return '/0/ServiceModel/SourceControlService.svc/GetPackageState';
+			case CreatioType.ReqestType.getSchemaMetaData: return '/0/ServiceModel/SchemaMetaDataService.svc/GetSchemaMetaData';
+			case CreatioType.ReqestType.saveSchema: return '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/SaveSchema';
+			case CreatioType.ReqestType.getAvailableReferenceSchemas: return '/0/ServiceModel/EntitySchemaDesignerService.svc/GetAvailableReferenceSchemas';
+			case CreatioType.ReqestType.login: return '/ServiceModel/AuthService.svc/Login';
+			case CreatioType.ReqestType.selectQuery: return '/DataService/json/SyncReply/SelectQuery';
+			case CreatioType.ReqestType.insertQuery: return '/DataService/json/SyncReply/InsertQuery';
+			case CreatioType.ReqestType.deleteQuery: return '/DataService/json/SyncReply/DeleteQuery';
+			case CreatioType.ReqestType.updateQuery: return '/DataService/json/SyncReply/UpdateQuery';
+			case CreatioType.ReqestType.runProcess: return '/0/ServiceModel/ProcessEngineService.svc/RunProcess';
+			case CreatioType.ReqestType.processSchemaRequest: return '/0/ServiceModel/ProcessSchemaRequestService.svc/ProcessSchemaRequest';
+			case CreatioType.ReqestType.processSchemaParameter: return '/0/DataService/json/SyncReply/ProcessSchemaParameter';
+			case CreatioType.ReqestType.runtimeEntitySchemaRequest: return '/0/DataService/json/SyncReply/RuntimeEntitySchemaRequest';
+			case CreatioType.ReqestType.entitySchemaManagerRequest: return '/0/DataService/json/SyncReply/EntitySchemaManagerRequest';
+			case CreatioType.ReqestType.restartApp: return '/0/ServiceModel/AppInstallerService.svc/RestartApp';
+			case CreatioType.ReqestType.clearRedisDb: return '/0/ServiceModel/AppInstallerService.svc/ClearRedisDb';
+			case CreatioType.ReqestType.executeSqlScript: return '/0/rest/CreatioApiGateway/ExecuteSqlScript';
+			case CreatioType.ReqestType.pingWebHost: return '/0/api/HealthCheck/Ping';
+			case CreatioType.ReqestType.pingWebApp: return '/api/HealthCheck/Ping';
+			case CreatioType.ReqestType.getPackageProperties: return '/0/ServiceModel/PackageService.svc/GetPackageProperties';
+			case CreatioType.ReqestType.getClientUnitSchema: return '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/GetSchema';
+			case CreatioType.ReqestType.getSqlSchema: return '/0/ServiceModel/SqlScriptSchemaDesignerService.svc/GetSchema';
+			case CreatioType.ReqestType.setFeatureState: return '/0/rest/FeatureStateService/SetFeatureState';
+			case CreatioType.ReqestType.startLogBroadcast: return '/0/rest/ATFLogService/StartLogBroadcast';
+			case CreatioType.ReqestType.stopLogBroadcast: return '/0/rest/ATFLogService/ResetConfiguration';
+			case CreatioType.ReqestType.unlockPackageElements: return '/0/ServiceModel/SourceControlService.svc/UnlockPackageElements';
+			case CreatioType.ReqestType.lockPackageElements: return '/0/ServiceModel/SourceControlService.svc/LockPackageElements';
+			case CreatioType.ReqestType.generateChanges: return '/0/ServiceModel/SourceControlService.svc/GenerateChanges';
 			default: return '';
 		}
 	}
 
-	async executeCreatioCommand<ResponseType extends CreatioResponse>(type: ReqestType, data: any): Promise<ResponseType | null> {
+	async executeCreatioCommand<ResponseType extends CreatioType.CreatioResponse>(type: CreatioType.ReqestType, data: any): Promise<ResponseType | null> {
 		try {
-			if (type === ReqestType.login) {
+			if (type === CreatioType.ReqestType.login) {
 				return await this.tryLogin(data);
 			}
 			return this.requestQueue.push(async () => { return (await this.trySendApiRequest<ResponseType>(this.getRequestUrl(type), data)).body; });
@@ -72,7 +73,7 @@ export class CreatioClient {
 	}
 
 	private async tryLogin(data: any) {
-		let response: any = await retryAsync(() => this.post(this.getRequestUrl(ReqestType.login), data), ConfigurationHelper.getRetryPolicy());
+		let response: any = await retryAsync(() => this.post(this.getRequestUrl(CreatioType.ReqestType.login), data), ConfigurationHelper.getRetryPolicy());
 
 		if (response.response.statusCode !== 200) {
 			console.error(response.body);
@@ -202,7 +203,7 @@ export class CreatioClient {
 			"UserName": this.credentials.login,
 			"UserPassword": this.credentials.password
 		};
-		let response = await this.executeCreatioCommand(ReqestType.login, postData);
+		let response = await this.executeCreatioCommand(CreatioType.ReqestType.login, postData);
 		if (response) {
 			CreatioStatusBar.update('Connected to Creatio');
 			return true;
@@ -213,7 +214,7 @@ export class CreatioClient {
 
 	async getCurrentUserInfo() {
 		try {
-			return await this.sendApiRequest(this.getRequestUrl(ReqestType.getCurrentUserInfo));
+			return await this.sendApiRequest(this.getRequestUrl(CreatioType.ReqestType.getCurrentUserInfo));
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
@@ -222,31 +223,39 @@ export class CreatioClient {
 
 	async getApplicationInfo() {
 		try {
-			return await this.sendApiRequest(this.getRequestUrl(ReqestType.getApplicationInfo));
+			return await this.sendApiRequest(this.getRequestUrl(CreatioType.ReqestType.getApplicationInfo));
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;
 		}
 	}
 
-	async revertElements(schemas: Array<WorkSpaceItem>): Promise<CreatioResponse> {
-		let response = await this.trySendApiRequest<CreatioResponse>(this.getRequestUrl(ReqestType.revertElements), schemas);
+	async revertElements(schemas: Array<CreatioType.WorkSpaceItem>): Promise<CreatioType.CreatioResponse> {
+		let response = await this.trySendApiRequest<CreatioType.CreatioResponse>(this.getRequestUrl(CreatioType.ReqestType.revertElements), schemas);
 		return response.body;
 	}
 
-	async getPackages(): Promise<Array<PackageMetaInfo>> {
-		let response = await this.trySendApiRequest<GetPackagesResponse>(this.getRequestUrl(ReqestType.getPackages));
+	async getPackages(): Promise<Array<CreatioType.PackageMetaInfo>> {
+		let response = await this.trySendApiRequest<CreatioType.GetPackagesResponse>(this.getRequestUrl(CreatioType.ReqestType.getPackages));
 		return response ? response.body.packages.map((x: any) => { return x; }) : [];
 	}
 
-	async unlockSchema(items: WorkSpaceItem[]): Promise<CreatioResponse> {
-		let response = await this.trySendApiRequest<CreatioResponse>(this.getRequestUrl(ReqestType.unlockPackageElements), items);
+	async unlockSchema(items: CreatioType.WorkSpaceItem[]): Promise<CreatioType.CreatioResponse> {
+		let response = await this.trySendApiRequest<CreatioType.CreatioResponse>(this.getRequestUrl(CreatioType.ReqestType.unlockPackageElements), items);
 		return response.body;
 	}
 
-	async lockSchema(items: WorkSpaceItem[]): Promise<CreatioResponse> {
-		let response = await this.trySendApiRequest<CreatioResponse>(this.getRequestUrl(ReqestType.lockPackageElements), items);
+	async lockSchema(items: CreatioType.WorkSpaceItem[]): Promise<CreatioType.CreatioResponse> {
+		let response = await this.trySendApiRequest<CreatioType.CreatioResponse>(this.getRequestUrl(CreatioType.ReqestType.lockPackageElements), items);
 		return response.body;
+	}
+
+	async generateChanges(packageName : string): Promise<CreatioType.PackageChangeEntry | null> {
+		const payload = {
+			"packageName": packageName
+		};
+		let response = await this.trySendApiRequest<CreatioType.GenerateChangesResponse>(this.getRequestUrl(CreatioType.ReqestType.generateChanges), payload);
+		return response.body.changes.length > 0 ? response.body.changes[0] : null;
 	}
 
 	isJSON(text: string): any {
@@ -258,7 +267,7 @@ export class CreatioClient {
 		return true;
 	}
 
-	async trySendApiRequest<ResponseType extends CreatioResponse>(path: string, postData: any = null): Promise<ClientPostResponse<ResponseType>> {
+	async trySendApiRequest<ResponseType extends CreatioType.CreatioResponse>(path: string, postData: any = null): Promise<CreatioType.ClientPostResponse<ResponseType>> {
 		if (!this.cookies || this.cookies.length === 0 || this.isConnected() === false) {
 			await this.login();
 		}
@@ -285,11 +294,11 @@ export class CreatioClient {
 			throw Error(response.body.errorInfo.message);
 		}
 
-		return response as ClientPostResponse<ResponseType>;
+		return response as CreatioType.ClientPostResponse<ResponseType>;
 	}
 
-	async getWorkspaceItems(): Promise<Array<WorkSpaceItem>> {
-		let response = await this.trySendApiRequest<GetWorkspaceItemsResponse>('/0/ServiceModel/WorkspaceExplorerService.svc/GetWorkspaceItems');
+	async getWorkspaceItems(): Promise<Array<CreatioType.WorkSpaceItem>> {
+		let response = await this.trySendApiRequest<CreatioType.GetWorkspaceItemsResponse>('/0/ServiceModel/WorkspaceExplorerService.svc/GetWorkspaceItems');
 		return response ? response.body.items : [];
 	}
 
@@ -297,11 +306,11 @@ export class CreatioClient {
 		const payload = {
 			"script": sql
 		};
-		let response = await this.trySendApiRequest<CreatioResponse>('/0/DataService/json/SyncReply/SelectQuery', payload);
+		let response = await this.trySendApiRequest<CreatioType.CreatioResponse>('/0/DataService/json/SyncReply/SelectQuery', payload);
 		return response?.body;
 	}
 
-	async getSchema(schemaUId: string, type: SchemaType): Promise<Schema | undefined> {
+	async getSchema(schemaUId: string, type: CreatioType.SchemaType): Promise<CreatioType.Schema | undefined> {
 		const payload = {
 			"schemaUId": schemaUId
 		};
@@ -310,22 +319,22 @@ export class CreatioClient {
 		let svcPath = "";
 
 		switch (type) {
-			case SchemaType.clientUnit:
+			case CreatioType.SchemaType.clientUnit:
 				svcPath = '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/GetSchema';
 				break;
-			case SchemaType.sourceCode:
+			case CreatioType.SchemaType.sourceCode:
 				svcPath = '/0/ServiceModel/SourceCodeSchemaDesignerService.svc/GetSchema';
 				break;
-			case SchemaType.sqlScript:
+			case CreatioType.SchemaType.sqlScript:
 				svcPath = '/0/ServiceModel/SqlScriptSchemaDesignerService.svc/GetSchema';
 				break;
-			case SchemaType.processUserTask:
+			case CreatioType.SchemaType.processUserTask:
 				svcPath = '/0/ServiceModel/ProcessUserTaskSchemaDesignerService.svc/GetSchema';
 				break;
-			case SchemaType.entity:
+			case CreatioType.SchemaType.entity:
 				svcPath = '/0/ServiceModel/EntitySchemaDesignerService.svc/GetSchema';
 				break;
-			case SchemaType.data:
+			case CreatioType.SchemaType.data:
 				svcPath = '/0/ServiceModel/SchemaDataDesignerService.svc/GetSchema';
 				break;
 			default:
@@ -333,7 +342,7 @@ export class CreatioClient {
 		}
 
 		try {
-			response = await this.trySendApiRequest<GetSchemaResponse>(svcPath, payload);
+			response = await this.trySendApiRequest<CreatioType.GetSchemaResponse>(svcPath, payload);
 			return response.body.schema;
 		}
 		catch (err: any) {
@@ -457,8 +466,8 @@ export class CreatioClient {
 		}
 	}
 
-	async saveSchema(schema: Schema): Promise<SaveSchemaResponse | null> {
-		return await this.executeCreatioCommand<SaveSchemaResponse>(ReqestType.saveSchema, schema);
+	async saveSchema(schema: CreatioType.Schema): Promise<CreatioType.SaveSchemaResponse | null> {
+		return await this.executeCreatioCommand<CreatioType.SaveSchemaResponse>(CreatioType.ReqestType.saveSchema, schema);
 	}
 
 	async getAvailableReferenceSchemas(id: string) {
