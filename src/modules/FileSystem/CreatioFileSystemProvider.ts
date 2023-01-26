@@ -61,7 +61,45 @@ export class Directory implements vscode.FileStat {
 export type Entry = File | Directory;
 
 export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
-    async generateChanges(resourceUri: vscode.Uri, context : vscode.ExtensionContext) {
+    build() {
+        vscode.window.withProgress(
+            {
+                "location": vscode.ProgressLocation.Notification,
+                "title": "Compiling"
+            }, async (progress, token) => {
+                let response = await this.client?.build();
+                if (!response?.success && response?.errors) {
+                    response.errors.forEach(error => {
+                        vscode.window.showErrorMessage(error);
+                    });
+                } else if (response?.message) {
+                    vscode.window.showInformationMessage(response?.message);
+                } else {
+                    vscode.window.showInformationMessage("Build completed");
+                }
+            });
+    }
+
+    rebuild() {
+        vscode.window.withProgress(
+            {
+                "location": vscode.ProgressLocation.Notification,
+                "title": "Compiling"
+            }, async (progress, token) => {
+                let response = await this.client?.rebuild();
+                if (!response?.success && response?.errors) {
+                    response.errors.forEach(error => {
+                        vscode.window.showErrorMessage(error);
+                    });
+                } else if (response?.message) {
+                    vscode.window.showInformationMessage(response?.message);
+                } else {
+                    vscode.window.showInformationMessage("Build completed");
+                }
+            });
+    }
+
+    async generateChanges(resourceUri: vscode.Uri, context: vscode.ExtensionContext) {
         vscode.window.withProgress(
             {
                 "location": vscode.ProgressLocation.Notification,

@@ -28,6 +28,18 @@
   "contributes": {
     "commands": [
       {
+        "command": "creatiocode.build",
+        "title": "Build code on remote server",
+        "icon": {
+          "light": "resources/media/light/build.svg",
+          "dark": "resources/media/dark/build.svg"
+        }
+      },
+      {
+        "command": "creatiocode.rebuild",
+        "title": "Rebuild everything"
+      },
+      {
         "command": "creatiocode.createCreatioWorkspace",
         "title": "New Creatio workspace",
         "icon": {
@@ -37,11 +49,7 @@
       },
       {
         "command": "creatiocode.generateChanges",
-        "title": "Push to SVN",
-        "icon": {
-          "light": "resources/media/light/build.svg",
-          "dark": "resources/media/dark/build.svg"
-        }
+        "title": "Push to SVN"
       },
       {
         "command": "creatiocode.reloadCreatioWorkspace",
@@ -93,12 +101,17 @@
         {
           "command": "creatiocode.reloadCreatioWorkspace",
           "when": "view =~ /creatiocode.Explorer/",
-          "group": "navigation@1"
+          "group": "navigation"
         },
         {
           "command": "creatiocode.createCreatioWorkspace",
           "when": "view =~ /creatiocode.Explorer/",
-          "group": "navigation@1"
+          "group": "navigation"
+        }, 
+        {
+          "command": "creatiocode.build",
+          "when": "view =~ /creatiocode.Explorer/ && creatio.workspaceLoaded",
+          "group": "navigation"
         }
       ],
       "view/item/context": [

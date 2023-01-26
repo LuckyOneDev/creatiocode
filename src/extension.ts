@@ -190,6 +190,20 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
+		vscode.commands.registerCommand("creatiocode.build", async () => {
+			const fs = CreatioFileSystemProvider.getInstance();
+			await fs.build();
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand("creatiocode.rebuild", async () => {
+			const fs = CreatioFileSystemProvider.getInstance();
+			await fs.rebuild();
+		})
+	);
+
+	context.subscriptions.push(
 		vscode.languages.registerDefinitionProvider('javascript', SchemaStructureDefinitionProvider.getInstance())
 	);
 

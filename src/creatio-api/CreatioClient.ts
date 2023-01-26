@@ -55,6 +55,8 @@ export class CreatioClient {
 			case CreatioType.ReqestType.unlockPackageElements: return '/0/ServiceModel/SourceControlService.svc/UnlockPackageElements';
 			case CreatioType.ReqestType.lockPackageElements: return '/0/ServiceModel/SourceControlService.svc/LockPackageElements';
 			case CreatioType.ReqestType.generateChanges: return '/0/ServiceModel/SourceControlService.svc/GenerateChanges';
+			case CreatioType.ReqestType.build: return '/0/ServiceModel/WorkspaceExplorerService.svc/Build';
+			case CreatioType.ReqestType.rebuild: return '/0/ServiceModel/WorkspaceExplorerService.svc/Rebuild';
 			default: return '';
 		}
 	}
@@ -250,7 +252,7 @@ export class CreatioClient {
 		return response.body;
 	}
 
-	async generateChanges(packageName : string): Promise<CreatioType.PackageChangeEntry | null> {
+	async generateChanges(packageName: string): Promise<CreatioType.PackageChangeEntry | null> {
 		const payload = {
 			"packageName": packageName
 		};
@@ -341,23 +343,18 @@ export class CreatioClient {
 				return undefined; //throw new Error("Invalid schema type");
 		}
 
-		try {
-			response = await this.trySendApiRequest<CreatioType.GetSchemaResponse>(svcPath, payload);
-			return response.body.schema;
-		}
-		catch (err: any) {
-			vscode.window.showErrorMessage(err.message);
-			return undefined;
-		}
+		response = await this.trySendApiRequest<CreatioType.GetSchemaResponse>(svcPath, payload);
+		return response.body.schema;
 	}
 
-	async build() {
-		try {
-			return await this.sendApiRequest('/0/ServiceModel/WorkspaceExplorerService.svc/Build');
-		} catch (err: any) {
-			vscode.window.showErrorMessage(err.message);
-			return err;
-		}
+	async build(): Promise<CreatioType.BuildResponse> {
+		let response = await this.trySendApiRequest<CreatioType.BuildResponse>(this.getRequestUrl(CreatioType.ReqestType.build));
+		return response.body;
+	}
+
+	async rebuild(): Promise<CreatioType.BuildResponse> {
+		let response = await this.trySendApiRequest<CreatioType.BuildResponse>(this.getRequestUrl(CreatioType.ReqestType.rebuild));
+		return response.body;
 	}
 
 	/**

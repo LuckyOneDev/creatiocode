@@ -1,6 +1,12 @@
 import * as http from 'http';
 
 
+
+
+
+
+
+
 export enum ReqestType {
 	getCurrentUserInfo,
 	getApplicationInfo,
@@ -34,7 +40,9 @@ export enum ReqestType {
 	stopLogBroadcast,
 	unlockPackageElements,
 	lockPackageElements,
-	generateChanges
+	generateChanges,
+	build,
+	rebuild
 }
 
 export enum ChangeState {
@@ -118,7 +126,13 @@ export interface PackageChangeEntry {
 
 export interface GenerateChangesResponse extends CreatioResponse {
 	changes: Array<PackageChangeEntry>;
-	errors: Array<any>;
+	errors: Array<any> | null;
+}
+
+export interface BuildResponse extends CreatioResponse {
+	buildResult: number;
+	message: string;
+	errors: Array<any> | null;
 }
 
 export interface GetWorkspaceItemsResponse extends CreatioResponse {
