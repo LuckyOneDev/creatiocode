@@ -102,8 +102,28 @@ export class CreatioExplorerItem extends vscode.TreeItem {
         }
     }
 
+    private sortEntries(entries: Entry[]) : Entry[] {
+        return entries
+        .sort((a, b) => {
+            if (a instanceof File && b instanceof File) {
+                let fileA = a as File;
+                let fileB = b as File;
+                if (fileA.workSpaceItem.isChanged && !fileB.workSpaceItem.isChanged) {
+                    return -1;
+                } else if (fileA.workSpaceItem.isLocked && !fileB.workSpaceItem.isLocked) {
+                    return -1;
+                } else {
+                    return 0;
+                }
+            } else {
+                return 0;
+            }
+        });
+    }
+
     getChildren(): vscode.ProviderResult<CreatioExplorerItem[]> {
-        return CreatioFileSystemProvider.getInstance().getDirectoryContents(this.resourceUri!).map((entry) => new CreatioExplorerItem(entry));
+        let entries = CreatioFileSystemProvider.getInstance().getDirectoryContents(this.resourceUri!);
+        return this.sortEntries(entries).map((entry) => new CreatioExplorerItem(entry));
     }
 }
 
@@ -131,19 +151,24 @@ export class CreatioExplorer implements vscode.TreeDataProvider<CreatioExplorerI
         return element;
     }
 
+    sortFolders(folders: Directory[]) {
+        return folders
+        .sort((a, b) => {
+            let readonlyA = a.package?.isReadOnly;
+            let readonlyB = b.package?.isReadOnly;
+            if (readonlyA === readonlyB) {
+                return a.name.localeCompare(b.name);
+            } else {
+                return readonlyA ? 1 : -1;
+            }
+        });
+    }
+
     getChildren(element?: CreatioExplorerItem | undefined): vscode.ProviderResult<CreatioExplorerItem[]> {
         let fs = CreatioFileSystemProvider.getInstance();
         if (!element) {
-            var folders = fs.folders
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .sort((a) => {
-                    if (a.package) {
-                        return a.package?.isReadOnly ? 1 : -1;
-                    } else {
-                        return 0;
-                    }
-                }).map(folder => new CreatioExplorerItem(folder));
-            return folders;
+            return this.sortFolders(fs.folders)
+                    .map(folder => new CreatioExplorerItem(folder));
         } else {
             return element.getChildren();
         }
@@ -161,3 +186,5 @@ export class CreatioExplorer implements vscode.TreeDataProvider<CreatioExplorerI
         this._onDidChangeTreeData?.fire();
     }
 }
+
+
