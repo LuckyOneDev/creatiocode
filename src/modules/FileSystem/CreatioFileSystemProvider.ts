@@ -8,7 +8,6 @@ import { ConfigurationHelper } from '../../common/ConfigurationHelper';
 import { FileSystemHelper } from './FileSystemHelper';
 import { CreatioCodeUtils } from '../../common/CreatioCodeUtils';
 import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './CreatioExplorer';
-
 export class File implements vscode.FileStat {
 
     type: vscode.FileType;

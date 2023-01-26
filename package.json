@@ -29,7 +29,11 @@
     "commands": [
       {
         "command": "creatiocode.createCreatioWorkspace",
-        "title": "New Creatio workspace"
+        "title": "New Creatio workspace",
+        "icon": {
+          "light": "resources/media/light/add.svg",
+          "dark": "resources/media/dark/add.svg"
+        }
       },
       {
         "command": "creatiocode.reloadCreatioWorkspace",
@@ -80,6 +84,11 @@
       "view/title": [
         {
           "command": "creatiocode.reloadCreatioWorkspace",
+          "when": "view =~ /creatiocode.Explorer/",
+          "group": "navigation@1"
+        },
+        {
+          "command": "creatiocode.createCreatioWorkspace",
           "when": "view =~ /creatiocode.Explorer/",
           "group": "navigation@1"
         }
