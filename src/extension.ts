@@ -12,6 +12,10 @@ import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem
 import { FileSystemHelper } from './modules/FileSystem/FileSystemHelper';
 import { CreatioCompletionItemProvider } from './modules/Intellisense/CreatioCompletionItemProvider';
 import { ConnectionInfo } from './creatio-api/ConnectionInfo';
+import { CreatioDefinitionProvider } from './modules/Intellisense/CreatioDefinitionProvider';
+import { IntellisenseHelper } from './modules/Intellisense/IntellisenseHelper';
+import { IntellisenseVirtualFileSystemProvider } from './modules/Intellisense/IntellisenseVirtualFileSystemProvider';
+import { CreatioHoverProvider } from './modules/Intellisense/CreatioHoverProvider';
 
 async function getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
 	const url = await vscode.window.showInputBox({
@@ -63,7 +67,7 @@ async function reloadWorkSpace() {
 		fs.client = client;
 		await fs.reload();
 		CreatioExplorer.getInstance().refresh();
-		await CreatioCompletionItemProvider.getInstance().init();
+		await IntellisenseHelper.init();
 		vscode.commands.executeCommand('setContext', 'creatio.workspaceLoaded', true);
 	}
 
@@ -204,11 +208,23 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
+		vscode.workspace.registerTextDocumentContentProvider("creatio-completion", IntellisenseVirtualFileSystemProvider.getInstance())
+	);
+
+	context.subscriptions.push(
 		vscode.languages.registerDefinitionProvider('javascript', SchemaStructureDefinitionProvider.getInstance())
 	);
 
 	context.subscriptions.push(
 		vscode.languages.registerCompletionItemProvider('javascript', CreatioCompletionItemProvider.getInstance(), '.')
+	);
+
+	context.subscriptions.push(
+		vscode.languages.registerDefinitionProvider('javascript', CreatioDefinitionProvider.getInstance())
+	);
+
+	context.subscriptions.push(
+		vscode.languages.registerHoverProvider('javascript', CreatioHoverProvider.getInstance())
 	);
 
 	CreatioStatusBar.show('Creatio not initialized');

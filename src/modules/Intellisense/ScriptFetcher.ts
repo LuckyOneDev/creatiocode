@@ -83,7 +83,6 @@ export class ScriptFetcher {
     static getPageScrpts(page: string): string[] {
         let scriptTags = page.match(/<script.*?src=".*?".*?<\/script>/g);
         if (!scriptTags) { return []; }
-        // Get script src
         scriptTags = scriptTags.map(x => {
             const src = x.match(/src=".*?"/g);
             if (src) {
