@@ -106,7 +106,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                 "title": "Loading diff"
             }, async (progress, token) => {
                 let memDir = this.getMemFolder(resourceUri);
-                if (!memDir || !memDir.package) return;
+                if (!memDir || !memDir.package) { return; }
                 let changes = await this.client?.generateChanges(memDir.package.name);
                 return changes;
             }).then(changes => {
@@ -127,7 +127,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                 "title": "Reloading schema"
             }, async (progress, token) => {
                 const inMemFile = this.getMemFile(resourceUri);
-                if (!inMemFile) return;
+                if (!inMemFile) { return; }
                 let schema = await this.client!.getSchema(inMemFile.workSpaceItem.uId, inMemFile.workSpaceItem.type);
                 if (schema) {
                     inMemFile.schema = schema;
@@ -140,46 +140,42 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
     }
 
     async unlockSchema(resourceUri: vscode.Uri) {
-        if (!this.client) return;
+        if (!this.client) { return; }
         const memFile = this.getMemFile(resourceUri);
-        if (!memFile?.workSpaceItem) return;
+        if (!memFile?.workSpaceItem) { return; }
         vscode.window.withProgress(
             {
                 "location": vscode.ProgressLocation.Notification,
                 "title": "Unlocking schema"
             },
             async (progress, token) => {
-                let reponse = await this.client!.unlockSchema([memFile?.workSpaceItem]);
-                if (reponse.success) {
+                let response = await this.client!.unlockSchema([memFile?.workSpaceItem]);
+                if (response && response.success) {
                     memFile.workSpaceItem.isLocked = false;
                     await this.changeMemFile(resourceUri, memFile);
                     this._fireSoon({ type: vscode.FileChangeType.Changed, uri: resourceUri });
                     // vscode.window.showInformationMessage("Schema unlocked");
-                } else {
-                    vscode.window.showErrorMessage(JSON.stringify(reponse.errorInfo));
                 }
             }
         );
     }
 
     async lockSchema(resourceUri: vscode.Uri) {
-        if (!this.client) return;
+        if (!this.client) { return; }
         const memFile = this.getMemFile(resourceUri);
-        if (!memFile?.workSpaceItem) return;
+        if (!memFile?.workSpaceItem) { return; }
         vscode.window.withProgress(
             {
                 "location": vscode.ProgressLocation.Notification,
                 "title": "Locking schema"
             },
             async (progress, token) => {
-                let reponse = await this.client!.lockSchema([memFile?.workSpaceItem]);
-                if (reponse.success) {
+                let response = await this.client!.lockSchema([memFile?.workSpaceItem]);
+                if (response && response.success) {
                     memFile.workSpaceItem.isLocked = true;
                     await this.changeMemFile(resourceUri, memFile);
                     this._fireSoon({ type: vscode.FileChangeType.Changed, uri: resourceUri });
                     // vscode.window.showInformationMessage("Schema locked");
-                } else {
-                    vscode.window.showErrorMessage(JSON.stringify(reponse.errorInfo));
                 }
             }
         );
@@ -330,6 +326,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             let first = await this.read(this.fsHelper.getPath(file));
             if (first) {
                 items.push(first);
+                // @ts-ignore
                 while (items[items.length - 1].schema?.parent && token.isCancellationRequested === false) {
                     // @ts-ignore
                     let newFile = await this.read(this.getSchemaUri(items[items.length - 1].schema?.parent.uId));
@@ -371,6 +368,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
 
         // Order files by parent-child relation
         let orderedFiles: File[] = [];
+        // @ts-ignore
         let root = files.find(x => x.schema?.parent.uId === undefined);
         if (!root) {
             throw new Error("Root schema not found");
@@ -379,6 +377,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         orderedFiles.push(root);
 
         for (let i = 0; i < files.length; i++) {
+            // @ts-ignore
             let child = files.find(x => x.schema?.parent.uId === orderedFiles[i].schema?.uId);
             if (child) {
                 orderedFiles.push(child);
@@ -412,6 +411,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                     edit.replace(new vscode.Range(
                         document!.lineAt(0).range.start,
                         document!.lineAt(document!.lineCount - 1).range.end
+                        // @ts-ignore
                     ), file.schema!.body.toString());
                 });
             });
@@ -497,7 +497,9 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             }, async (progress, token) => {
                 this.read(uri).then(file => {
                     if (file) {
-                        resolve(Buffer.from(file.schema!.body));
+                        if (file.schema && file.schema.body) {
+                            resolve(Buffer.from(file.schema!.body));
+                        }
                         progress.report({
                             increment: 100,
                             message: "File loaded"
@@ -517,7 +519,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         CreatioExplorer.getInstance().refresh();
 
         if (this.client && this.client.isConnected()) {
-            this.fsHelper.root = this.client.credentials.getHostName();
+            this.fsHelper.root = this.client.connectionInfo.getHostName();
 
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
@@ -646,18 +648,13 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             location: vscode.ProgressLocation.Notification,
             title: "Saving file"
         }, async (progress, token) => {
-            const response = await this.client?.saveSchema(file.schema!);
+            const response = await this.client?.saveSchema(file.schema!, file.workSpaceItem.type);
             if (!response) {
                 vscode.window.showErrorMessage("Error saving file");
             } else {
-                if (ConfigurationHelper.isCarefulMode()) {
-                    const serverSchema = await this.client!.getSchema(file.workSpaceItem.uId, file.workSpaceItem.type);
-                    file.schema = serverSchema;
-                    await this.changeMemFile(uri, file);
-                } else {
-                    file!.workSpaceItem.isChanged = true;
-                    file!.workSpaceItem.isLocked = true;
-                }
+                file!.workSpaceItem.isChanged = true;
+                file!.workSpaceItem.isLocked = true;
+                this._fireSoon({ type: vscode.FileChangeType.Changed, uri: uri });
                 progress.report({
                     increment: 100,
                     message: "File saved"
@@ -672,15 +669,16 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
     }
 
     delete(uri: vscode.Uri): void {
-        let file = this.getMemFile(uri);
-        if (this.client && this.client.isConnected()) {
-            if (file) {
-                this.client.deleteSchema([file.workSpaceItem.id]);
-                this._fireSoon({ type: vscode.FileChangeType.Deleted, uri });
-            } else {
-                vscode.window.showInformationMessage("Package deletion is not supported. Please use web interface.");
-            }
-        }
+        vscode.window.showInformationMessage("Package deletion is not supported. Please use web interface.");
+        // let file = this.getMemFile(uri);
+        // if (this.client && this.client.isConnected()) {
+        //     if (file) {
+        //         this.client.deleteSchema([file.workSpaceItem.id]);
+        //         this._fireSoon({ type: vscode.FileChangeType.Deleted, uri });
+        //     } else {
+        //         vscode.window.showInformationMessage("Package deletion is not supported. Please use web interface.");
+        //     }
+        // }
     }
 
 

@@ -55,7 +55,7 @@ export class ScriptFetcher {
     static async loadScript(path: string): Promise<string> {
         return new Promise((resolve, reject) => {
             const options: http.RequestOptions = {
-                host: CreatioFileSystemProvider.getInstance().client?.credentials.getHostName(),
+                host: CreatioFileSystemProvider.getInstance().client?.connectionInfo.getHostName(),
                 path: path,
                 method: 'GET',
             };
@@ -103,7 +103,7 @@ export class ScriptFetcher {
     static loadPage(path: string): Promise<string> {
         return new Promise((resolve, reject) => {
             const options: http.RequestOptions = {
-                host: CreatioFileSystemProvider.getInstance().client?.credentials.getHostName(),
+                host: CreatioFileSystemProvider.getInstance().client?.connectionInfo.getHostName(),
                 path: path,
                 method: 'GET',
                 headers: {

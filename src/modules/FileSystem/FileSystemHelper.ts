@@ -104,10 +104,8 @@ export class FileSystemHelper {
     }
 
 
-    async deleteDirectory(directoryPath: string) {
-        await fs.rm(directoryPath, (err) => {
-            console.error(err);
-        });
+    deleteDirectory(directoryPath: string) {
+        fs.rmSync(directoryPath, { recursive: true, force: true });
     }
 
     update(file: File) {

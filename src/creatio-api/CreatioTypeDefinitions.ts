@@ -1,75 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import * as http from 'http';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-export enum ReqestType {
-	getCurrentUserInfo,
-	getApplicationInfo,
-	getPackages,
-	getWorkspaceItems,
-	revertElements,
-	getPackageState,
-	getSchemaMetaData,
-	saveSchemaClientUnit,
-	getAvailableReferenceSchemas,
-	login,
-	selectQuery,
-	insertQuery,
-	deleteQuery,
-	updateQuery,
-	runProcess,
-	processSchemaRequest,
-	processSchemaParameter,
-	runtimeEntitySchemaRequest,
-	entitySchemaManagerRequest,
-	restartApp,
-	clearRedisDb,
-	executeSqlScript,
-	pingWebHost,
-	pingWebApp,
-	getPackageProperties,
-	getClientUnitSchema,
-	getSqlSchema,
-	setFeatureState,
-	startLogBroadcast,
-	stopLogBroadcast,
-	unlockPackageElements,
-	lockPackageElements,
-	generateChanges,
-	build,
-	rebuild,
-	saveSchemaSourceCode
-}
-
-export enum ChangeState {
-	unchanged = 0,
-	added = 1,
-	changed = 2,
-}
-
-export interface ErrorInfo {
-	errorCode: any;
-	message: any;
-	stackTrace: any;
-}
-
-export enum ChangeStateSchemaType {
-	schemaResource = 6,
-	schema = 1
-}
 
 export enum SchemaType {
 	sqlScript = 0,
@@ -82,6 +12,23 @@ export enum SchemaType {
 	case = 7,
 	processUserTask = 8,
 	unknown = -1,
+}
+
+export enum ChangeState {
+	unchanged = 0,
+	added = 1,
+	changed = 2,
+}
+
+export enum ChangeStateSchemaType {
+	schemaResource = 6,
+	schema = 1
+}
+
+export interface ErrorInfo {
+	errorCode: any;
+	message: any;
+	stackTrace: any;
 }
 
 export interface PackageMetaInfo {
@@ -106,30 +53,30 @@ export interface CreatioResponse {
 }
 
 export interface GetPackagesResponse extends CreatioResponse {
-	packages: Array<WorkSpaceItem>;
+	packages: Array<PackageMetaInfo>;
 }
 
 export interface PackageChangeEntryItem {
 	cultureName: string | null;
-	name : string;
+	name: string;
 	state: ChangeState;
 	stateCaption: string;
 	stateName: string;
 	type: number;
 	typeCaption: string;
-	typeName : string;
+	typeName: string;
 	uId: string;
 }
 
 export interface PackageChangeEntry {
 	items: Array<PackageChangeEntryItem>;
-	name : string;
+	name: string;
 	state: ChangeState;
 	stateCaption: string;
 	stateName: string;
 	type: number;
 	typeCaption: string;
-	typeName : string;
+	typeName: string;
 	uId: string;
 }
 
@@ -162,31 +109,51 @@ export interface SaveSchemaResponse extends CreatioResponse {
 }
 
 export interface Schema {
+	name: string;
 	uId: string;
+	body: string | null;
+	dependencies: any | null;
+	id: string;
 	isReadOnly: boolean;
+	package: undefined | PackageMetaInfo;
 	caption: Array<{ cultureName: string; value: string }>;
 	description: Array<any>;
 	localizableStrings: Array<{ uId: string, name: string, parentSchemaUId: string }>;
-	parameters: Array<any>;
-	_markerCommentsTemplate: string;
-	messages: Array<any>;
-	images: Array<{ uId: string, name: string, parentSchemaUId: string, isChanged: boolean }>;
-	name: string;
-	body: string;
-	dependencies: any;
-	id: string;
-	package: undefined | PackageMetaInfo;
 	extendParent: boolean;
-	group: string;
-	less: string;
-	schemaType: SchemaType;
+}
+
+enum ClientShemaType {
+	Module = 5
+	// Incomplete list
+}
+
+export interface SourceCodeSchema extends Schema {
+	body: string;
+}
+
+export interface ClientUnitSchema extends Schema {
+	body: string;
+	schemaType: ClientShemaType;
 	parent: Partial<Schema>;
+	images: Array<{ uId: string, name: string, parentSchemaUId: string, isChanged: boolean }>;
+	less: string;
+	group: string;
+	messages: Array<any>;
+	parameters: Array<any>;
+}
+
+export interface EntitySchema extends Schema {
+	administratedByColumns: boolean;
+	administratedByOperations: boolean;
+	administratedByRecords: boolean;
+	columns: Array<any>;
+	handledEventNames: Array<string>;
+	//not completed
 }
 
 export function isSchema(object: any): object is Schema {
-    return 'uId' in object 
+	return 'uId' in object
 		&& 'name' in object
-		&& 'schemaType' in object
 		&& 'body' in object
 		&& 'isReadOnly' in object
 		&& 'parent' in object;
@@ -208,7 +175,7 @@ export interface WorkSpaceItem {
 }
 
 export function isWorkspaceItem(object: any): object is WorkSpaceItem {
-    return 'uId' in object 
+	return 'uId' in object
 		&& 'name' in object
 		&& 'type' in object
 		&& 'packageName' in object
