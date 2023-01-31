@@ -8,18 +8,15 @@ import {
 import { FileSystemHelper } from "./FileSystemHelper";
 
 export class CreatioExplorerDecorationProvider
-  implements vscode.FileDecorationProvider
-{
+  implements vscode.FileDecorationProvider {
   private constructor() {
-    CreatioFileSystemProvider.getInstance().onDidChangeFile(
-      (e: vscode.FileChangeEvent[]) => {
-        e.forEach((x) => {
-          if (x.type === vscode.FileChangeType.Changed) {
-            this._emitter.fire([x.uri]);
-          }
-        });
-      }
-    );
+    CreatioFileSystemProvider.getInstance().onDidChangeFile((events: vscode.FileChangeEvent[]) => {
+      events.forEach(event => {
+        if (event.type === vscode.FileChangeType.Changed) {
+          this._fireSoon(event.uri);
+        }
+      });
+    });
   }
   private static instance: CreatioExplorerDecorationProvider;
   public static getInstance(): CreatioExplorerDecorationProvider {
@@ -69,7 +66,7 @@ export class CreatioExplorerDecorationProvider
 
     return {
       badge: badge,
-      tooltip: tooltipItems.join(" | "),
+      tooltip: tooltipItems.join("|")
     };
   }
 
@@ -80,7 +77,7 @@ export class CreatioExplorerDecorationProvider
   readonly onDidChangeFileDecorations: vscode.Event<vscode.Uri[]> =
     this._emitter.event;
 
-  private _fireSoon(...events: vscode.Uri[]): void {
+  _fireSoon(...events: vscode.Uri[]): void {
     this._bufferedEvents.push(...events);
 
     if (this._fireSoonHandle) {
@@ -123,7 +120,7 @@ export class CreatioExplorerItem extends vscode.TreeItem {
       };
       this.description =
         resource.workSpaceItem.title &&
-        resource.name.includes(resource.workSpaceItem.title)
+          resource.name.includes(resource.workSpaceItem.title)
           ? undefined
           : resource.workSpaceItem.title;
       this.tooltip = this.description;
@@ -165,7 +162,7 @@ export class CreatioExplorer
   implements vscode.TreeDataProvider<CreatioExplorerItem>
 {
   // Singleton
-  private constructor() {}
+  private constructor() { }
 
   private static instance: CreatioExplorer;
   public static getInstance(): CreatioExplorer {

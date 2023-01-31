@@ -191,7 +191,12 @@
         "creatiocode.carefulMode": {
           "type": "boolean",
           "default": "true",
-          "description": "If true extension will check server version of file every time it is opened."
+          "description": "Check server version of file every time it is opened."
+        },
+        "creatiocode.advancedIntellisense": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Load experimental intellisense (resource heavy)."
         },
         "creatiocode.retryPolicy.attempts": {
           "type": "number",
@@ -246,12 +251,12 @@
         "creatiocode.fileTypes.ClientUnit.Enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Whether to show client code (js) in file explorer."
+          "description": "Show client code (js) in file explorer."
         },
         "creatiocode.fileTypes.SourceCode.Enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Whether to show source code (c#) in file explorer."
+          "description": "Show source code (c#) in file explorer."
         },
         "creatiocode.fileTypes.SqlScript.Enabled": {
           "type": "boolean",
@@ -261,7 +266,7 @@
         "creatiocode.fileTypes.ProcessUserTask.Enabled": {
           "type": "boolean",
           "default": false,
-          "description": "Whether to show ProcessUserTask in file explorer."
+          "description": "Show ProcessUserTask in file explorer."
         },
         "creatiocode.fileTypes.Entity.Enabled": {
           "type": "boolean",
@@ -271,22 +276,22 @@
         "creatiocode.fileTypes.Data.Enabled": {
           "type": "boolean",
           "default": false,
-          "description": "Whether to show binded data in file explorer."
+          "description": "Show binded data in file explorer."
         },
         "creatiocode.fileTypes.Process.Enabled": {
           "type": "boolean",
           "default": false,
-          "description": "Whether to show processes in file explorer."
+          "description": "Show processes in file explorer."
         },
         "creatiocode.fileTypes.Case.Enabled": {
           "type": "boolean",
           "default": false,
-          "description": "Whether to show cases in file explorer."
+          "description": "Show cases in file explorer."
         },
         "fileExtensions.Dll.Enabled": {
           "type": "boolean",
           "default": false,
-          "description": "Whether to show dlls in file explorer."
+          "description": "Show dlls in file explorer."
         }
       }
     }

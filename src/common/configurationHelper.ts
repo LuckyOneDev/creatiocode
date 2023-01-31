@@ -108,4 +108,8 @@ export class ConfigurationHelper {
             delay: this.config.get("retryPolicy.delay") || 1000
         };
     }
+
+    static useAdvancedIntellisense(): boolean {
+        return this.config.get("advancedIntellisense") ? true : false;
+    }
 }

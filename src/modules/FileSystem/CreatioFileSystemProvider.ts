@@ -1,6 +1,3 @@
-// LEGACY CODE
-// TODO: Move filesystem code to separate 
-
 import * as vscode from 'vscode';
 import { CreatioClient } from '../../creatio-api/CreatioClient';
 import { PackageMetaInfo, Schema, WorkSpaceItem, SchemaType } from '../../creatio-api/CreatioTypeDefinitions';
@@ -9,6 +6,7 @@ import { FileSystemHelper } from './FileSystemHelper';
 import { CreatioCodeUtils } from '../../common/CreatioCodeUtils';
 import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './CreatioExplorer';
 import { PushToSVNPanel } from '../SVN/PushSVNPanel';
+
 export class File implements vscode.FileStat {
 
     type: vscode.FileType;
@@ -61,6 +59,19 @@ export class Directory implements vscode.FileStat {
 export type Entry = File | Directory;
 
 export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
+    // Singleton    
+    fsHelper: FileSystemHelper;
+    private constructor(root: string) {
+        this.fsHelper = new FileSystemHelper(root);
+    }
+    private static instance: CreatioFileSystemProvider;
+    public static getInstance(): CreatioFileSystemProvider {
+        if (!CreatioFileSystemProvider.instance) {
+            CreatioFileSystemProvider.instance = new CreatioFileSystemProvider("");
+        }
+        return CreatioFileSystemProvider.instance;
+    }
+
     build() {
         vscode.window.withProgress(
             {
@@ -99,7 +110,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             });
     }
 
-    async generateChanges(resourceUri: vscode.Uri, context: vscode.ExtensionContext) {
+    generateChanges(resourceUri: vscode.Uri, context: vscode.ExtensionContext) {
         vscode.window.withProgress(
             {
                 "location": vscode.ProgressLocation.Notification,
@@ -120,7 +131,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             });
     }
 
-    async reloadFile(resourceUri: vscode.Uri) {
+    reloadFile(resourceUri: vscode.Uri) {
         vscode.window.withProgress(
             {
                 "location": vscode.ProgressLocation.Notification,
@@ -139,7 +150,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             });
     }
 
-    async unlockSchema(resourceUri: vscode.Uri) {
+    unlockSchema(resourceUri: vscode.Uri) {
         if (!this.client) { return; }
         const memFile = this.getMemFile(resourceUri);
         if (!memFile?.workSpaceItem) { return; }
@@ -160,7 +171,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         );
     }
 
-    async lockSchema(resourceUri: vscode.Uri) {
+    lockSchema(resourceUri: vscode.Uri) {
         if (!this.client) { return; }
         const memFile = this.getMemFile(resourceUri);
         if (!memFile?.workSpaceItem) { return; }
@@ -180,18 +191,6 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             }
         );
     }
-    // Singleton    
-    fsHelper: FileSystemHelper;
-    private constructor(root: string) {
-        this.fsHelper = new FileSystemHelper(root);
-    }
-    private static instance: CreatioFileSystemProvider;
-    public static getInstance(): CreatioFileSystemProvider {
-        if (!CreatioFileSystemProvider.instance) {
-            CreatioFileSystemProvider.instance = new CreatioFileSystemProvider("");
-        }
-        return CreatioFileSystemProvider.instance;
-    }
 
     getUriByName(docName: string): vscode.Uri[] {
         let files = this.files.filter(x => x.name === `${docName}${ConfigurationHelper.getExtension(SchemaType.clientUnit)}`);
@@ -206,7 +205,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         return this.fsHelper.getPath(file);
     }
 
-    async restoreSchema(uri: vscode.Uri): Promise<void> {
+    restoreSchema(uri: vscode.Uri) {
         let memFile = this.getMemFile(uri);
         if (memFile && memFile?.workSpaceItem) {
             if (memFile.workSpaceItem.isChanged) {
@@ -223,14 +222,16 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                     let file = await this.read(uri, true);
 
                     if (file.schema) {
-                        file.workSpaceItem.isChanged = false;
-                        file.workSpaceItem.isLocked = false;
                         await this.changeMemFile(uri, file);
 
                         progress.report({
                             increment: 100,
                             message: "Schema restored"
                         });
+
+                        memFile!.workSpaceItem.isChanged = false;
+                        memFile!.workSpaceItem.isLocked = false;
+                        this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
                     }
                 });
             } else {
@@ -513,88 +514,95 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         });
     }
 
+    public isReloading: boolean = false;
+
     async reload() {
-        this.files = [];
-        this.folders = [];
-        CreatioExplorer.getInstance().refresh();
+        if (this.isReloading === false) {
+            this.isReloading = true;
 
-        if (this.client && this.client.isConnected()) {
-            this.fsHelper.root = this.client.connectionInfo.getHostName();
+            this.files = [];
+            this.folders = [];
+            CreatioExplorer.getInstance().refresh();
 
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: "Loading files",
-                cancellable: true
-            }, async (progress, token) => {
+            if (this.client && this.client.isConnected()) {
+                this.fsHelper.root = this.client.connectionInfo.getHostName();
 
-                progress.report({
-                    increment: 25,
-                    message: "Getting packages"
-                });
+                await vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Notification,
+                    title: "Loading files",
+                    cancellable: true
+                }, async (progress, token) => {
 
-                this.folders = (await this.client!.getPackages()).map(x => new Directory(x.name, x));
-                if (this.folders.length === 0) {
-                    vscode.window.showErrorMessage("No available packages found");
-                    return;
-                }
+                    progress.report({
+                        increment: 25,
+                        message: "Getting packages"
+                    });
 
-                if (token.isCancellationRequested) { return; }
+                    this.folders = (await this.client!.getPackages()).map(x => new Directory(x.name, x));
+                    if (this.folders.length === 0) {
+                        vscode.window.showErrorMessage("No available packages found");
+                        return;
+                    }
 
-                progress.report({
-                    increment: 25,
-                    message: "Getting Workspace Items"
-                });
+                    if (token.isCancellationRequested) { return; }
 
-                this.files = (await this.client!.getWorkspaceItems()).map(x => new File(this.fsHelper.withExtension(x), x));
-                if (this.files.length === 0) {
-                    vscode.window.showErrorMessage("No available schemas found");
-                    return;
-                }
+                    progress.report({
+                        increment: 25,
+                        message: "Getting Workspace Items"
+                    });
 
-                progress.report({
-                    increment: 25,
-                    message: "Forming workspace"
-                });
+                    this.files = (await this.client!.getWorkspaceItems()).map(x => new File(this.fsHelper.withExtension(x), x));
+                    if (this.files.length === 0) {
+                        vscode.window.showErrorMessage("No available schemas found");
+                        return;
+                    }
 
-                this.files = this.files.filter(x => {
-                    return ConfigurationHelper.isFileTypeEnabled(x.workSpaceItem.type);
-                });
+                    progress.report({
+                        increment: 25,
+                        message: "Forming workspace"
+                    });
 
-                this.folders.forEach(element => {
-                    const uri = this.fsHelper.getPath(element);
-                    const baseDir = this.fsHelper.getBaseDir(uri);
+                    this.files = this.files.filter(x => {
+                        return ConfigurationHelper.isFileTypeEnabled(x.workSpaceItem.type);
+                    });
 
-                    this._fireSoon(
-                        { type: vscode.FileChangeType.Changed, uri: baseDir },
-                        { type: vscode.FileChangeType.Created, uri: uri }
-                    );
-                });
+                    this.folders.forEach(element => {
+                        const uri = this.fsHelper.getPath(element);
+                        const baseDir = this.fsHelper.getBaseDir(uri);
 
-                this.files.forEach(file => {
-                    file.mtime = Date.now();
-                    // this.fsHelper.update(file);
-                    this._fireSoon({
-                        type: vscode.FileChangeType.Created,
-                        uri: this.fsHelper.getPath(file)
+                        this._fireSoon(
+                            { type: vscode.FileChangeType.Changed, uri: baseDir },
+                            { type: vscode.FileChangeType.Created, uri: uri }
+                        );
+                    });
+
+                    this.files.forEach(file => {
+                        file.mtime = Date.now();
+                        // this.fsHelper.update(file);
+                        this._fireSoon({
+                            type: vscode.FileChangeType.Created,
+                            uri: this.fsHelper.getPath(file)
+                        });
+                    });
+
+                    // Fix to update opened files
+                    vscode.window.visibleTextEditors.forEach(editor => {
+                        if (editor.document.uri.scheme === "creatio") {
+                            this._fireSoon({
+                                type: vscode.FileChangeType.Changed,
+                                uri: editor.document.uri
+                            });
+                        }
+                    });
+
+                    progress.report({
+                        increment: 25,
+                        message: "Filesystem loaded"
                     });
                 });
 
-                // Fix to update opened files
-                vscode.window.visibleTextEditors.forEach(editor => {
-                    if (editor.document.uri.scheme === "creatio") {
-                        this._fireSoon({
-                            type: vscode.FileChangeType.Changed,
-                            uri: editor.document.uri
-                        });
-                    }
-                });
-
-                progress.report({
-                    increment: 25,
-                    message: "Filesystem loaded"
-                });
-            });
-
+            }
+            this.isReloading = false;
         }
     }
 
@@ -639,11 +647,12 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
 
         throw vscode.FileSystemError.FileNotFound();
     }
+
     async save(uri: vscode.Uri, file: File): Promise<void> {
         if (!file.schema) {
             return;
         }
-
+        
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: "Saving file"
@@ -652,13 +661,16 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             if (!response) {
                 vscode.window.showErrorMessage("Error saving file");
             } else {
-                file!.workSpaceItem.isChanged = true;
-                file!.workSpaceItem.isLocked = true;
-                this._fireSoon({ type: vscode.FileChangeType.Changed, uri: uri });
                 progress.report({
                     increment: 100,
                     message: "File saved"
                 });
+
+                let memFile =this.getMemFile(uri);
+                memFile!.mtime = Date.now();
+                memFile!.workSpaceItem.isChanged = true;
+                memFile!.workSpaceItem.isLocked = true;
+                this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
             }
         });
     }

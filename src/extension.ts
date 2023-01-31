@@ -67,7 +67,10 @@ async function reloadWorkSpace() {
 		fs.client = client;
 		await fs.reload();
 		CreatioExplorer.getInstance().refresh();
-		await IntellisenseHelper.init();
+		if (ConfigurationHelper.useAdvancedIntellisense()) 
+		{
+			await IntellisenseHelper.init();
+		}
 		vscode.commands.executeCommand('setContext', 'creatio.workspaceLoaded', true);
 	}
 
