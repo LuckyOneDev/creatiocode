@@ -73,9 +73,9 @@ export class CreatioCompletionItemProvider implements vscode.CompletionItemProvi
         const line = document.lineAt(position).text;
         const objectChain = IntellisenseHelper.parseObjectString(line.substring(0, position.character - 1), position.character - 2);
         
-        if (objectChain.length > 0 && IntellisenseHelper.env) {
+        if (objectChain.length > 0 && IntellisenseHelper.scriptingEnviromentObject) {
             // Check if root object is in env
-            if (Object.keys(IntellisenseHelper.env).includes(objectChain[0])) {
+            if (Object.keys(IntellisenseHelper.scriptingEnviromentObject).includes(objectChain[0])) {
                 return this.getCompletionItems(objectChain);
             }
         }

@@ -29,7 +29,8 @@ export class CreatioClient {
 			case CreatioType.ReqestType.revertElements: return '/0/ServiceModel/SourceControlService.svc/RevertElements';
 			case CreatioType.ReqestType.getPackageState: return '/0/ServiceModel/SourceControlService.svc/GetPackageState';
 			case CreatioType.ReqestType.getSchemaMetaData: return '/0/ServiceModel/SchemaMetaDataService.svc/GetSchemaMetaData';
-			case CreatioType.ReqestType.saveSchema: return '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/SaveSchema';
+			case CreatioType.ReqestType.saveSchemaClientUnit: return '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/SaveSchema';
+			case CreatioType.ReqestType.saveSchemaSourceCode: return '/0/ServiceModel/SourceCodeSchemaDesignerService.svc/SaveSchema';
 			case CreatioType.ReqestType.getAvailableReferenceSchemas: return '/0/ServiceModel/EntitySchemaDesignerService.svc/GetAvailableReferenceSchemas';
 			case CreatioType.ReqestType.login: return '/ServiceModel/AuthService.svc/Login';
 			case CreatioType.ReqestType.selectQuery: return '/DataService/json/SyncReply/SelectQuery';
@@ -464,7 +465,20 @@ export class CreatioClient {
 	}
 
 	async saveSchema(schema: CreatioType.Schema): Promise<CreatioType.SaveSchemaResponse | null> {
-		return await this.executeCreatioCommand<CreatioType.SaveSchemaResponse>(CreatioType.ReqestType.saveSchema, schema);
+		let requestType: CreatioType.ReqestType;
+		switch (schema.schemaType) {
+			case CreatioType.SchemaType.clientUnit:
+				requestType = CreatioType.ReqestType.saveSchemaClientUnit;
+				break;
+			case CreatioType.SchemaType.sourceCode:
+				requestType = CreatioType.ReqestType.saveSchemaSourceCode;
+				break;
+			default:
+				requestType = CreatioType.ReqestType.saveSchemaSourceCode;
+				break;
+		}
+
+		return await this.executeCreatioCommand<CreatioType.SaveSchemaResponse>(requestType, schema);
 	}
 
 	async getAvailableReferenceSchemas(id: string) {

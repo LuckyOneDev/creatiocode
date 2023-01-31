@@ -15,9 +15,9 @@ export class CreatioDefinitionProvider implements vscode.DefinitionProvider {
     provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Definition | vscode.LocationLink[]> {
         const line = document.lineAt(position).text;
         const objectChain = IntellisenseHelper.parseObjectString(line, position.character);
-        if (objectChain.length > 0 && IntellisenseHelper.env) {
+        if (objectChain.length > 0 && IntellisenseHelper.scriptingEnviromentObject) {
             // Check if root object is in env
-            if (Object.keys(IntellisenseHelper.env).includes(objectChain[0])) {
+            if (Object.keys(IntellisenseHelper.scriptingEnviromentObject).includes(objectChain[0])) {
                 return this.getDefinition(objectChain);
             }
         }

@@ -7,6 +7,14 @@ import * as http from 'http';
 
 
 
+
+
+
+
+
+
+
+
 export enum ReqestType {
 	getCurrentUserInfo,
 	getApplicationInfo,
@@ -15,7 +23,7 @@ export enum ReqestType {
 	revertElements,
 	getPackageState,
 	getSchemaMetaData,
-	saveSchema,
+	saveSchemaClientUnit,
 	getAvailableReferenceSchemas,
 	login,
 	selectQuery,
@@ -42,7 +50,8 @@ export enum ReqestType {
 	lockPackageElements,
 	generateChanges,
 	build,
-	rebuild
+	rebuild,
+	saveSchemaSourceCode
 }
 
 export enum ChangeState {

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ScriptFetcher } from './ScriptFetcher';
 
 export class IntellisenseHelper {
-    public static env: any;
+    public static scriptingEnviromentObject: any;
     public static init() {
         vscode.window.withProgress(
             {
@@ -14,10 +14,7 @@ export class IntellisenseHelper {
                     message: "Loading scripts",
                     increment: 0
                 });
-                this.env =  
-                {
-                    "this" : await ScriptFetcher.getScriptEnviroment()
-                };
+                this.scriptingEnviromentObject = await ScriptFetcher.getScriptEnviroment();
             }
         );
     }
@@ -40,7 +37,7 @@ export class IntellisenseHelper {
     }
 
     public static getCurrentObject(objectChain: string[]) {
-        let currentObject: any = IntellisenseHelper.env;
+        let currentObject: any = IntellisenseHelper.scriptingEnviromentObject;
         for (let i = 0; i < objectChain.length && currentObject; i++) {
             const nextObj = objectChain[i];
             currentObject = currentObject[nextObj];
@@ -80,7 +77,7 @@ export class IntellisenseHelper {
             let identifier = this.getIdentifier(line, i);
             if (identifier) {
                 objectChain.unshift(identifier);
-                i -= identifier.length;
+                i -= identifier.length + 1;
             }
         }
 
@@ -88,7 +85,7 @@ export class IntellisenseHelper {
             let identifier = this.getIdentifier(line, i);
             if (identifier) {
                 objectChain.push(identifier);
-                i += identifier.length;
+                i += identifier.length - 1;
             }
         }
         
