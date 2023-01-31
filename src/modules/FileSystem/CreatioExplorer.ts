@@ -64,10 +64,9 @@ export class CreatioExplorerDecorationProvider
       tooltipItems.push("Locked");
     }
 
-    return {
-      badge: badge,
-      tooltip: tooltipItems.join("|")
-    };
+    let color = file.isError ? new vscode.ThemeColor("list.errorForeground") : undefined;
+    
+    return new vscode.FileDecoration(badge, tooltipItems.join("|"), color);
   }
 
   private _emitter = new vscode.EventEmitter<vscode.Uri[]>();

@@ -60,6 +60,11 @@ export class CreatioClient {
 
 		response.body = JSON.parse(response.body);
 
+		// Skip error handling for build response
+		if (Creatio.isBuildResponse(response.body)) {
+			return response as Creatio.ClientPostResponse<ResponseType>;
+		}
+
 		if (response.body.success === false) {
 			console.error(response.body);
 			throw Error(response.body.errorInfo.message);

@@ -10,9 +10,9 @@ import { GenericWebViewPanel } from "../../common/WebView/GenericWebViewPanel";
 import { PackageChangeEntry } from "../../creatio-api/CreatioTypeDefinitions";
 
 export class PushToSVNPanel extends GenericWebViewPanel {
-    changes: PackageChangeEntry[];
+    changes: PackageChangeEntry;
 
-    public constructor(context: vscode.ExtensionContext, changes: PackageChangeEntry[]) {
+    public constructor(context: vscode.ExtensionContext, changes: PackageChangeEntry) {
         super(context);
         this.changes = changes;
     }

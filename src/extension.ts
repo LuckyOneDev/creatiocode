@@ -16,71 +16,7 @@ import { CreatioDefinitionProvider } from './modules/Intellisense/CreatioDefinit
 import { IntellisenseHelper } from './modules/Intellisense/IntellisenseHelper';
 import { IntellisenseVirtualFileSystemProvider } from './modules/Intellisense/IntellisenseVirtualFileSystemProvider';
 import { CreatioHoverProvider } from './modules/Intellisense/CreatioHoverProvider';
-
-async function getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
-	const url = await vscode.window.showInputBox({
-		title: 'Creatio url',
-		value: oldInput?.url || "baseurl"
-	});
-	if (!url) {
-		return undefined;
-	}
-
-	const login = await vscode.window.showInputBox({
-		title: 'Creatio login',
-		value: oldInput?.login || "Supervisor"
-	});
-	if (!login) {
-		return undefined;
-	}
-
-	const password = await vscode.window.showInputBox({
-		title: 'Creatio password',
-		value: oldInput?.password || "Supervisor"
-	});
-	if (!password) {
-		return undefined;
-	}
-
-	return new ConnectionInfo(url, login, password);
-}
-
-async function tryCreateConnection(): Promise<CreatioClient | null> {
-	let loginData: ConnectionInfo | undefined = ConfigurationHelper.getLoginData();
-	if (loginData) {
-		loginData = new ConnectionInfo(loginData.url, loginData.login, loginData.password);
-		let client = new CreatioClient(loginData);
-		return await client.login() ? client : null;
-	}
-	return null;
-}
-
-async function reloadWorkSpace() {
-	let connectionInfo = ConfigurationHelper.getLoginData();
-	if (!connectionInfo) {
-		return false;
-	}
-	
-	let fs = CreatioFileSystemProvider.getInstance();
-	let client = await tryCreateConnection();
-	if (client) {
-		fs.client = client;
-		await fs.reload();
-		CreatioExplorer.getInstance().refresh();
-		if (ConfigurationHelper.useAdvancedIntellisense()) 
-		{
-			await IntellisenseHelper.init();
-		}
-		vscode.commands.executeCommand('setContext', 'creatio.workspaceLoaded', true);
-	}
-
-	return client !== null;
-}
-
-async function createWorkspace(context: vscode.ExtensionContext) {
-	let panelProvider = new CreatioLoginPanel(context);
-	panelProvider.createPanel();
-}
+import { createWorkspace, reloadWorkSpace } from './core';
 
 function registerFileSystem(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.createCreatioWorkspace', async () => {
@@ -97,7 +33,6 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 	// 	{ isCaseSensitive: true }
 	// ));
 }
-
 
 function registerContextMenus(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.cacheFolder', function (folder: CreatioExplorerItem) {

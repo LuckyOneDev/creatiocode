@@ -182,6 +182,11 @@ export function isWorkspaceItem(object: any): object is WorkSpaceItem {
 		&& 'packageUId' in object;
 }
 
+export function isBuildResponse(object: any): object is BuildResponse {
+    return 'buildResult' in object;
+}
+
+
 export class ClientPostResponse<ResponseType extends CreatioResponse> {
 	body: ResponseType;
 	response: http.IncomingMessage;

@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
+import { reloadWorkSpace } from '../core';
 
 export class CreatioCodeUtils {
     static createReconnectDialouge(callbackYes: () => any  = () => {}, callbackNo: () => any = () => {}): any {
-        vscode.window.showErrorMessage("Client is not connected. Reconnect?", "Reconnect").then((value) => {
+        vscode.window.showErrorMessage("Client is not connected. Reconnect?", "Reconnect").then(async (value) => {
             if (value === "Reconnect") {
-                vscode.commands.executeCommand("creatiocode.reloadCreatioWorkspace").then(() => {
-                    return callbackYes();
-                });
+                await reloadWorkSpace();
+                return callbackYes();
             } else {
                 return callbackNo();
             }

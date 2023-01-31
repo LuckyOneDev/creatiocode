@@ -6,6 +6,7 @@ import { FileSystemHelper } from './FileSystemHelper';
 import { CreatioCodeUtils } from '../../common/CreatioCodeUtils';
 import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './CreatioExplorer';
 import { PushToSVNPanel } from '../SVN/PushSVNPanel';
+import { SimplePanel } from '../Intellisense/SimplePanel/simplepanel';
 
 export class File implements vscode.FileStat {
 
@@ -14,7 +15,7 @@ export class File implements vscode.FileStat {
     mtime: number;
     size: number;
     name: string;
-
+    isError: boolean = false;
     workSpaceItem: WorkSpaceItem;
     schema?: Schema;
 
@@ -61,6 +62,8 @@ export type Entry = File | Directory;
 export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
     // Singleton    
     fsHelper: FileSystemHelper;
+    context?: vscode.ExtensionContext;
+
     private constructor(root: string) {
         this.fsHelper = new FileSystemHelper(root);
     }
@@ -72,6 +75,19 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         return CreatioFileSystemProvider.instance;
     }
 
+    createTableString(tableData: Array<Array<string>>): string {
+        var result = "<table>";
+        for (var i = 0; i < tableData.length; i++) {
+            result += "<tr>";
+            for (var j = 0; j < tableData[i].length; j++) {
+                result += "<td>" + tableData[i][j] + "</td>";
+            }
+            result += "</tr>";
+        }
+        result += "</table>";
+        return result;
+    }
+
     build() {
         vscode.window.withProgress(
             {
@@ -80,9 +96,32 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             }, async (progress, token) => {
                 let response = await this.client?.build();
                 if (!response?.success && response?.errors) {
-                    response.errors.forEach(error => {
-                        vscode.window.showErrorMessage(error);
+                    CreatioCodeUtils.createYesNoDialouge(`Build failed with ${response.errors.length} errors. Show errors?`, () => {
+                        let tableArray = new Array<Array<string>>();
+                        tableArray.push(["File", "Line", "Column", "Code", "Error"]);
+                        response!.errors!.forEach(error => {
+                            tableArray.push([error.fileName, error.line, error.column, error.errorNumber, error.errorText]);
+                        });
+                        let style = `
+                        <style>
+                            table {
+                                width: 100%;
+                            }
+
+                            table, th, td {
+                                border: 1px solid;
+                                text-align: center;
+                                border-collapse: collapse;
+                            }
+
+                            th, td {
+                                padding: 5px;
+                            }
+                        </style>`;
+                        let panel = new SimplePanel(this.context!, `Build errors ${new Date(Date.now()).toISOString()}`, style + this.createTableString(tableArray));
+                        panel.createPanel();
                     });
+
                 } else if (response?.message) {
                     vscode.window.showInformationMessage(response?.message);
                 } else {
@@ -99,9 +138,32 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             }, async (progress, token) => {
                 let response = await this.client?.rebuild();
                 if (!response?.success && response?.errors) {
-                    response.errors.forEach(error => {
-                        vscode.window.showErrorMessage(error);
+                    CreatioCodeUtils.createYesNoDialouge(`Build failed with ${response.errors.length} errors. Show errors?`, () => {
+                        let tableArray = new Array<Array<string>>();
+                        tableArray.push(["File", "Line", "Column", "Code", "Error"]);
+                        response!.errors!.forEach(error => {
+                            tableArray.push([error.fileName, error.line, error.column, error.errorNumber, error.errorText]);
+                        });
+                        let style = `
+                        <style>
+                            table {
+                                width: 100%;
+                            }
+
+                            table, th, td {
+                                border: 1px solid;
+                                text-align: center;
+                                border-collapse: collapse;
+                            }
+
+                            th, td {
+                                padding: 5px;
+                            }
+                        </style>`;
+                        let panel = new SimplePanel(this.context!, `Build errors ${new Date(Date.now()).toISOString()}`, style + this.createTableString(tableArray));
+                        panel.createPanel();
                     });
+
                 } else if (response?.message) {
                     vscode.window.showInformationMessage(response?.message);
                 } else {
@@ -123,7 +185,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             }).then(changes => {
                 if (changes) {
                     // Open webview
-                    let panel = new PushToSVNPanel(context, changes);
+                    let panel = new PushToSVNPanel(context, changes[0]);
                     panel.createPanel();
                 } else {
                     vscode.window.showErrorMessage("Changes could not be generated");
@@ -285,7 +347,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
 
     client: CreatioClient | null = null;
 
-    stat(uri: vscode.Uri): vscode.FileStat {
+    stat(uri: vscode.Uri): vscode.FileStat | Thenable<vscode.FileStat> {
         if (uri.path === "/") {
             return this.root;
         }
@@ -299,7 +361,11 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         if (file) {
             return file;
         } else {
-            return CreatioCodeUtils.createReconnectDialouge(this.stat.bind(this, uri));
+            return new Promise<vscode.FileStat>(resolve => {
+                CreatioCodeUtils.createReconnectDialouge(() => {
+                    resolve(this.stat(uri));
+                });
+            });
         }
     }
 
@@ -652,7 +718,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         if (!file.schema) {
             return;
         }
-        
+
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: "Saving file"
@@ -666,7 +732,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                     message: "File saved"
                 });
 
-                let memFile =this.getMemFile(uri);
+                let memFile = this.getMemFile(uri);
                 memFile!.mtime = Date.now();
                 memFile!.workSpaceItem.isChanged = true;
                 memFile!.workSpaceItem.isLocked = true;
