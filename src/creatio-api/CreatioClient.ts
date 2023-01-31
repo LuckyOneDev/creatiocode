@@ -114,7 +114,7 @@ export class CreatioClient {
 	}
 
 	async revertElements(schemas: Array<Creatio.WorkSpaceItem>): Promise<Creatio.CreatioResponse | null> {
-		let response = await this.enqueueCommand<Creatio.GetPackagesResponse>(ReqestType.RevertElements);
+		let response = await this.enqueueCommand<Creatio.GetPackagesResponse>(ReqestType.RevertElements, schemas);
 		return response;
 	}
 
@@ -124,12 +124,12 @@ export class CreatioClient {
 	}
 
 	async unlockSchema(items: Creatio.WorkSpaceItem[]): Promise<Creatio.CreatioResponse | null> {
-		let response = await this.enqueueCommand<Creatio.GetPackagesResponse>(ReqestType.UnlockPackageElements);
+		let response = await this.enqueueCommand<Creatio.GetPackagesResponse>(ReqestType.UnlockPackageElements, items);
 		return response;
 	}
 
 	async lockSchema(items: Creatio.WorkSpaceItem[]): Promise<Creatio.CreatioResponse | null> {
-		let response = await this.enqueueCommand<Creatio.GetPackagesResponse>(ReqestType.LockPackageElements);
+		let response = await this.enqueueCommand<Creatio.GetPackagesResponse>(ReqestType.LockPackageElements, items);
 		return response;
 	}
 
