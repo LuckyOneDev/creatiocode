@@ -88,6 +88,20 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         return result;
     }
 
+    commit(packageName: string, message: any) {
+        vscode.window.withProgress({
+            "location": vscode.ProgressLocation.Notification,
+            "title": "Loading diff"
+        }, async (progress, token) => {
+            let response = await this.client?.commit(packageName, message);
+            if (response?.success && response?.commitResult === 0) {
+                vscode.window.showInformationMessage(response.commitResultName);
+            } else if (response?.commitResult !== 0) {
+                vscode.window.showErrorMessage(response!.commitResultName);
+            }
+        });
+    }
+
     build() {
         vscode.window.withProgress(
             {
@@ -185,7 +199,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             }).then(changes => {
                 if (changes) {
                     // Open webview
-                    let panel = new PushToSVNPanel(context, changes[0]);
+                    let panel = new PushToSVNPanel(context, this.getMemFolder(resourceUri)!.package!.name, changes[0]);
                     panel.createPanel();
                 } else {
                     vscode.window.showErrorMessage("Changes could not be generated");

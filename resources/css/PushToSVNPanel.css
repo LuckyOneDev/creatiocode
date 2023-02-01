@@ -3,6 +3,11 @@
     margin-right: auto;
 }
 
+table {
+    margin-top: 25px;
+    width: 50vw;
+}
+
 table, th, td {
     border: 1px solid;
     text-align: center;
@@ -15,4 +20,39 @@ th, td {
   
 tr:nth-child(odd) {
     background-color: var(--vscode-editor-background);
+}
+
+.inputPanel {
+    position: fixed;
+    top: 15px;
+    right: 50px;
+    width: 40vw;
+}
+
+.commitButton {
+    color: var(--vscode-button-foreground);
+    text-align: center;
+    margin: 15px;
+    width: 100%;
+    height: 30px;
+    background-color: var(--vscode-button-background);
+    border: 1px solid var(--vscode-button-border);
+    border-radius: 2px;
+}
+
+.commitButton:hover {
+    background-color: var(--vscode-button-hoverBackground);
+    cursor: pointer;
+}
+
+.commentField {
+    margin: 15px;
+    width: 100%;
+    height: 100px;
+    background-color: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 2px;
+    color: white;
+    resize: none;
+
 }

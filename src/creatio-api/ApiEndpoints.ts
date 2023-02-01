@@ -2,6 +2,7 @@ import { SchemaType } from "./CreatioTypeDefinitions";
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export enum ReqestType {
+    Commit,
     GetCurrentUserInfo,
     GetApplicationInfo,
     GetPackages,
@@ -70,6 +71,7 @@ export const DesignerServiceEndpoints: EnumDictionary<SchemaType, string> = {
 
 export const Endpoints: EnumDictionary<ReqestType, string> =
 {
+    [ReqestType.Commit]: '/0/ServiceModel/SourceControlService.svc/Commit',
     [ReqestType.GetCurrentUserInfo]: '/0/ServiceModel/UserInfoService.svc/GetCurrentUserInfo',
     [ReqestType.GetApplicationInfo]: '/0/ServiceModel/ApplicationInfoService.svc/GetApplicationInfo',
     [ReqestType.GetPackages]: '/0/ServiceModel/PackageService.svc/GetPackages',

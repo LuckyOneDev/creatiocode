@@ -80,6 +80,10 @@ export interface PackageChangeEntry {
 	uId: string;
 }
 
+export interface CommitResponse extends CreatioResponse {
+	commitResult: Number;
+	commitResultName: string;
+}
 export interface GenerateChangesResponse extends CreatioResponse {
 	changes: Array<PackageChangeEntry>;
 	errors: Array<any> | null;

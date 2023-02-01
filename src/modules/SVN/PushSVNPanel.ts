@@ -11,10 +11,12 @@ import { PackageChangeEntry } from "../../creatio-api/CreatioTypeDefinitions";
 
 export class PushToSVNPanel extends GenericWebViewPanel {
     changes: PackageChangeEntry;
+    packageName: string;
 
-    public constructor(context: vscode.ExtensionContext, changes: PackageChangeEntry) {
+    public constructor(context: vscode.ExtensionContext, packageName: string, changes: PackageChangeEntry) {
         super(context);
         this.changes = changes;
+        this.packageName = packageName;
     }
 
     protected webViewId = "creatiocode.pushToSVNPanel";
@@ -22,8 +24,8 @@ export class PushToSVNPanel extends GenericWebViewPanel {
 
     protected onDidReceiveMessage = async (message: any) => {
         switch (message.command) {
-            case 'push':
-                // Nothing
+            case 'commit':
+                CreatioFileSystemProvider.getInstance().commit(this.packageName, message.message);
                 this.dispose();
                 break;
             case 'getChanges':

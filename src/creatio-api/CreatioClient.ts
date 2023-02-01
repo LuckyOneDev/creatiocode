@@ -181,6 +181,15 @@ export class CreatioClient {
 		return response;
 	}
 
+	async commit(packageName: string, logMessage: string) {
+		const payload = {
+			"packageName": packageName,
+			"logMessage": logMessage
+		};
+		let response = await this.enqueueCommand<Creatio.CommitResponse>(ReqestType.Commit, payload);
+		return response;
+	}
+
 	/**
 	 * UNUSED. METHODS IN DEVELOPMENT
 	 */
@@ -216,6 +225,7 @@ export class CreatioClient {
 	 * @returns 
 	 */
 	private async getPackageState(packageName: string) {
+		// {"errorInfo":null,"success":true,"hasForeignLock":false,"isOutdated":false} response
 		const postData = {
 			"packageName": packageName,
 		};

@@ -53,15 +53,45 @@ function parseToArr(arr) {
     return tableData;
 }
 
+function createControls() {
+    let holder = document.createElement('div');
+    let commentField = document.createElement('textarea');
+    commentField.cols = 40;
+    commentField.rows = 5;
+    commentField.id = "comment";
+    commentField.placeholder = "Commit comments...";
+    commentField.className = "commentField";
+
+    let commitButton = document.createElement('button');
+    commitButton.innerHTML = "Commit";
+    commitButton.className = "commitButton";
+    
+    commitButton.onclick = async () => {
+        await postVSCMessage({
+            command: 'commit',
+            message: document.getElementById("comment").value
+        });
+    };
+
+    holder.appendChild(commentField);
+    holder.appendChild(commitButton);
+    holder.className = "inputPanel";
+    return holder;
+}
+
 window.onload = async function () {
     let changes = await postVSCMessage({
         command: 'getChanges'
     });
+
+    // Prepare table
     let elements = parseToArr(changes.items);
     let head = elements[0];
     head = [head[0], head[1], head[5]];
     elements.splice(0, 1);
     elements = elements.sort((a) => a[1] === 1 ? -1 : 1).map(x => [x[0], x[2], x[5]]);
     elements.unshift(head);
+
     document.body.appendChild(createTable(elements));
+    document.body.appendChild(createControls());
 };
