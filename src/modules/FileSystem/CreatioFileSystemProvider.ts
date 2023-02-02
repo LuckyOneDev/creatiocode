@@ -6,7 +6,7 @@ import { FileSystemHelper } from './FileSystemHelper';
 import { CreatioCodeUtils } from '../../common/CreatioCodeUtils';
 import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './CreatioExplorer';
 import { PushToSVNPanel } from '../SVN/PushSVNPanel';
-import { SimplePanel } from '../Intellisense/SimplePanel/simplepanel';
+import { SimplePanel } from '../SimplePanel/simplepanel';
 
 export class File implements vscode.FileStat {
 

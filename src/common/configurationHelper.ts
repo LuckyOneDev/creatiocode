@@ -112,4 +112,16 @@ export class ConfigurationHelper {
     static useAdvancedIntellisense(): boolean {
         return this.config.get("advancedIntellisense") ? true : false;
     }
+
+    static getOpenCommentPathEnabled(): boolean {
+        return this.config.get("regexEnabled") ? true : false;
+    }
+
+    static getOpenCommentPath(): string | undefined {
+        return this.config.get("regexPath");
+    }
+
+    static getRegexCommentPath(): string | undefined {
+        return this.config.get("regex");
+    }
 }

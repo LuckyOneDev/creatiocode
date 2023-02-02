@@ -45,8 +45,6 @@ export async function tryCreateConnection(): Promise<CreatioClient | null> {
 	return null;
 }
 
-
-
 export async function createWorkspace(context: vscode.ExtensionContext) {
 	let panelProvider = new CreatioLoginPanel(context);
 	panelProvider.createPanel();
@@ -57,15 +55,14 @@ export async function reloadWorkSpace() {
 	if (!connectionInfo) {
 		return false;
 	}
-	
+
 	let fs = CreatioFileSystemProvider.getInstance();
 	let client = await tryCreateConnection();
 	if (client) {
 		fs.client = client;
 		await fs.reload();
 		CreatioExplorer.getInstance().refresh();
-		if (ConfigurationHelper.useAdvancedIntellisense()) 
-		{
+		if (ConfigurationHelper.useAdvancedIntellisense()) {
 			await IntellisenseHelper.init();
 		}
 		vscode.commands.executeCommand('setContext', 'creatio.workspaceLoaded', true);

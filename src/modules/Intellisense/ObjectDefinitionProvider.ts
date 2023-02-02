@@ -2,14 +2,14 @@ import { type } from 'os';
 import * as vscode from 'vscode';
 import { IntellisenseHelper } from './IntellisenseHelper';
 
-export class CreatioDefinitionProvider implements vscode.DefinitionProvider {
+export class ObjectDefinitionProvider implements vscode.DefinitionProvider {
 
-    private static instance: CreatioDefinitionProvider;
-    public static getInstance(): CreatioDefinitionProvider {
-        if (!CreatioDefinitionProvider.instance) {
-            CreatioDefinitionProvider.instance = new CreatioDefinitionProvider();
+    private static instance: ObjectDefinitionProvider;
+    public static getInstance(): ObjectDefinitionProvider {
+        if (!ObjectDefinitionProvider.instance) {
+            ObjectDefinitionProvider.instance = new ObjectDefinitionProvider();
         }
-        return CreatioDefinitionProvider.instance;
+        return ObjectDefinitionProvider.instance;
     }
 
     provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Definition | vscode.LocationLink[]> {

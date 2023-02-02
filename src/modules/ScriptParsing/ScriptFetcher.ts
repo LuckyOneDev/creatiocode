@@ -22,6 +22,9 @@ export class ScriptFetcher {
         const Ext = values.Ext;
 
         return {
+            "this": {
+                "Terrasoft": Terrasoft,
+            },
             "Terrasoft": Terrasoft,
             "Ext": Ext
         };

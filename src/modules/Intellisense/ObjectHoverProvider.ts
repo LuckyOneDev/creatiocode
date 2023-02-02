@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import { IntellisenseHelper } from './IntellisenseHelper';
 
-export class CreatioHoverProvider implements vscode.HoverProvider {
-    private static instance: CreatioHoverProvider;
-    public static getInstance(): CreatioHoverProvider {
-        if (!CreatioHoverProvider.instance) {
-            CreatioHoverProvider.instance = new CreatioHoverProvider();
+export class ObjectHoverProvider implements vscode.HoverProvider {
+    private static instance: ObjectHoverProvider;
+    public static getInstance(): ObjectHoverProvider {
+        if (!ObjectHoverProvider.instance) {
+            ObjectHoverProvider.instance = new ObjectHoverProvider();
         }
-        return CreatioHoverProvider.instance;
+        return ObjectHoverProvider.instance;
     }
 
     provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {

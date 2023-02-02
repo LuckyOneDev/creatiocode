@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import { IntellisenseHelper } from './IntellisenseHelper';
-import { ScriptFetcher } from './ScriptFetcher';
+import { ScriptFetcher } from '../ScriptParsing/ScriptFetcher';
 
-export class CreatioCompletionItemProvider implements vscode.CompletionItemProvider<vscode.CompletionItem> {
-    private static instance: CreatioCompletionItemProvider;
-    public static getInstance(): CreatioCompletionItemProvider {
-        if (!CreatioCompletionItemProvider.instance) {
-            CreatioCompletionItemProvider.instance = new CreatioCompletionItemProvider();
+export class ObjectCompletionItemProvider implements vscode.CompletionItemProvider<vscode.CompletionItem> {
+    private static instance: ObjectCompletionItemProvider;
+    public static getInstance(): ObjectCompletionItemProvider {
+        if (!ObjectCompletionItemProvider.instance) {
+            ObjectCompletionItemProvider.instance = new ObjectCompletionItemProvider();
         }
-        return CreatioCompletionItemProvider.instance;
+        return ObjectCompletionItemProvider.instance;
     }
 
     getParamNames(functionText: string): string[] {
@@ -52,7 +52,7 @@ export class CreatioCompletionItemProvider implements vscode.CompletionItemProvi
                         break;
                     case 'function':
                         completionItem.documentation = value.toString();
-                        completionItem.insertText = key + `(${this.getParamNames(value.toString()).join(',')});`;
+                        completionItem.insertText = key + `(${this.getParamNames(value.toString()).join(',')})`;
                         break;
                     case 'undefined':
                         break;

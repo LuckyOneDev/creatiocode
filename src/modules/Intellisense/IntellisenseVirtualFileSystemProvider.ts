@@ -16,6 +16,6 @@ export class IntellisenseVirtualFileSystemProvider implements vscode.TextDocumen
         let object = IntellisenseHelper.getCurrentObject(uri.path.split('/'));
         if (typeof(object) === 'function') {
             return object.toString();
-        } 
+        }
     }
 }

@@ -188,6 +188,21 @@
     "configuration": {
       "title": "Creatio Code",
       "properties": {
+        "creatiocode.regexEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Regex matching enabled"
+        },
+        "creatiocode.regex": {
+          "type": "string",
+          "default": "#(.*\\d)",
+          "description": "Regex to match"
+        },
+        "creatiocode.regexPath": {
+          "type": "string",
+          "default": "https://www.google.com/search?q=${0}",
+          "description": "Regex to redirect to"
+        },
         "creatiocode.carefulMode": {
           "type": "boolean",
           "default": "true",
@@ -325,8 +340,10 @@
   "dependencies": {
     "@babel/parser": "^7.20.3",
     "@babel/traverse": "^7.20.1",
+    "@types/open": "^6.2.1",
     "browser-env": "^3.3.0",
     "js-beautify": "^1.14.7",
+    "open": "^8.4.0",
     "rimraf": "^3.0.2",
     "ts-retry": "^4.1.0"
   }

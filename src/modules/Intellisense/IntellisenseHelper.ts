@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ScriptFetcher } from './ScriptFetcher';
+import { ScriptFetcher } from '../ScriptParsing/ScriptFetcher';
 
 export class IntellisenseHelper {
     public static scriptingEnviromentObject: any;
@@ -50,17 +50,26 @@ export class IntellisenseHelper {
         return char.match(/[a-zA-Z0-9_$]/) !== null;
     }
 
+    public static isSpecialChar(char: string): boolean {
+        const specialChars = [';', '(', ')', '{', '}', '[', ']', '=', '+', '-', '*', '/', '%', '!', '?', ':', ',', '"'];
+        return specialChars.includes(char);
+    }
+
     public static getIdentifier(line: string, position: number) {
         if (!this.isIdentifierChar(line.charAt(position))) {
             return null;
         }
         let i: number;
         for (i = position; i > 0 && this.isIdentifierChar(line.charAt(i)); i--) {}
-        let left_border = i + 1;
+        let borderLeft = i + 1;
         for (i = position; i < line.length && this.isIdentifierChar(line.charAt(i)); i++) {}
-        let right_border = i;
+        let borderRight = i;
 
-        return line.substring(left_border, right_border);
+        return {
+            identifier: line.substring(borderLeft, borderRight),
+            left: borderLeft,
+            right: borderRight
+        };
     }
 
     public static parseObjectString(line: string, position: number): string[] {
@@ -70,24 +79,24 @@ export class IntellisenseHelper {
             return [];
         }
 
-        let objectChain: string[] = [selectedIdentifier];
-        const specialChars = [';', '(', ')', '{', '}', '[', ']', '=', '+', '-', '*', '/', '%', '!', '?', ':', ','];
+        let objectChain: string[] = [selectedIdentifier.identifier];
+        
 
-        for (let i = position - selectedIdentifier.length; i > 0 && !specialChars.includes(line.charAt(i)) ; i--) {
+        for (let i = selectedIdentifier.left - 1; i > 0 && !this.isSpecialChar(line.charAt(i)) ; i--) {
             let identifier = this.getIdentifier(line, i);
             if (identifier) {
-                objectChain.unshift(identifier);
-                i -= identifier.length + 1;
+                objectChain.unshift(identifier.identifier);
+                i -= identifier.identifier.length;
             }
         }
 
-        for (let i = position + selectedIdentifier.length; i < line.length && !specialChars.includes(line.charAt(i)) ; i++) {
-            let identifier = this.getIdentifier(line, i);
-            if (identifier) {
-                objectChain.push(identifier);
-                i += identifier.length - 1;
-            }
-        }
+        // for (let i = position + selectedIdentifier.length; i < line.length && !specialChars.includes(line.charAt(i)) ; i++) {
+        //     let identifier = this.getIdentifier(line, i);
+        //     if (identifier) {
+        //         objectChain.push(identifier);
+        //         i += identifier.length - 1;
+        //     }
+        // }
         
         
         return objectChain;
