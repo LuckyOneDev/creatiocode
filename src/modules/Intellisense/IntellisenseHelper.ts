@@ -14,7 +14,7 @@ export class IntellisenseHelper {
                     message: "Loading scripts",
                     increment: 0
                 });
-                this.scriptingEnviromentObject = await ScriptFetcher.getScriptEnviroment();
+                this.scriptingEnviromentObject = await ScriptFetcher.getDefaultScriptEnviroment();
             }
         );
     }

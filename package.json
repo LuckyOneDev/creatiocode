@@ -324,7 +324,6 @@
     "@types/babel-traverse": "^6.25.7",
     "@types/glob": "^8.0.0",
     "@types/mocha": "^10.0.0",
-    "@types/node": "^16.18.3",
     "@types/rimraf": "^3.0.2",
     "@types/vscode": "^1.73.1",
     "@typescript-eslint/eslint-plugin": "^5.43.0",
@@ -335,14 +334,17 @@
     "eslint": "^8.28.0",
     "glob": "^8.0.3",
     "mocha": "^10.1.0",
-    "typescript": "^4.9.3"
+    "typescript": "^4.9.5"
   },
   "dependencies": {
-    "@babel/parser": "^7.20.3",
+    "@babel/parser": "^7.20.15",
     "@babel/traverse": "^7.20.1",
+    "@ikscodes/browser-env": "^1.0.0",
+    "@types/js-beautify": "^1.13.3",
+    "@types/jsdom": "^20.0.1",
     "@types/open": "^6.2.1",
-    "browser-env": "^3.3.0",
     "js-beautify": "^1.14.7",
+    "jsdom": "^21.1.0",
     "open": "^8.4.0",
     "rimraf": "^3.0.2",
     "ts-retry": "^4.1.0"

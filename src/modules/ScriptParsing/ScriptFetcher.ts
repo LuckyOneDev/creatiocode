@@ -2,60 +2,59 @@
 import * as http from 'http';
 import * as vm from 'vm';
 import { CreatioFileSystemProvider } from '../FileSystem/CreatioFileSystemProvider';
+import beautify from 'js-beautify';
+import browserEnv from '@ikscodes/browser-env';
 
-const browserEnv = require('browser-env');
-var beautify = require('js-beautify').js;
 
 export class ScriptFetcher {
-    static async getScriptEnviroment() {
-        const scripts = await this.loadAllScripts('/0/Nui/ViewModule.aspx');
-        let eviroment = vm.createContext(browserEnv());
+    public static async getDefaultScriptEnviroment() {
+        const values = await this.getPageScriptEnv('/0/Nui/ViewModule.aspx');
+        const finalObject = this.prepareEnviromentCollection(values);
+        return finalObject;
+    }
+
+    public static async getPageScriptEnv(url: string) {
+        const scripts = await this.loadAllScripts(url);
+        let eviroment: any = browserEnv();
+
         scripts.forEach(src => {
             // append script tags to the DOM enviroment
             const script = eviroment.document.createElement('script');
             script.src = src;
             eviroment.document.body.appendChild(script);
         });
-        const values = await this.evalScripts(scripts, eviroment);
-
-        const Terrasoft = values.Terrasoft;
-        const Ext = values.Ext;
-
-        return {
-            "this": {
-                "Terrasoft": Terrasoft,
-            },
-            "Terrasoft": Terrasoft,
-            "Ext": Ext
-        };
+        const values = await this.evalScripts(scripts, eviroment, browserEnv());
+        return values;
     }
 
-    static async evalScripts(scripts: string[], eviroment: any): Promise<NodeJS.Dict<any>> {
+    public static async evalScripts(scripts: string[], eviroment: NodeJS.Dict<any>, compareTo: NodeJS.Dict<any>): Promise<NodeJS.Dict<any>> {
         let context = vm.createContext(eviroment);
-        scripts.forEach(code => {
+        for (const script of scripts) {
             try {
-                vm.runInContext(beautify(code), context);
+                vm.runInContext(beautify(script), context);
             } catch (err) {
-                console.error(err);
+                console.error(`Error while evaluating script:\n${err}`);
             }
-        });
-        return context;
+        }
+
+        let dict = vm.createContext();
+
+        for (const property in context) {
+            if (!compareTo.hasOwnProperty(property)) {
+                dict[property] = context[property];
+            }
+        };
+
+        return dict;
     }
 
-    static async loadAllScripts(path: string): Promise<string[]> {
-        const basePage = await this.loadPage(path);
-        const scriptSrcs = await this.getPageScrpts(basePage);
-        const scripts = await this.loadScripts(scriptSrcs);
-        return scripts;
-    }
-
-    static async loadScripts(scripts: string[]): Promise<string[]> {
+    private static async loadScripts(scripts: string[]): Promise<string[]> {
         const promises = scripts.map(x => this.loadScript(x));
         const result = await Promise.all(promises);
         return result;
     }
 
-    static async loadScript(path: string): Promise<string> {
+    private static async loadScript(path: string): Promise<string> {
         return new Promise((resolve, reject) => {
             const options: http.RequestOptions = {
                 host: CreatioFileSystemProvider.getInstance().client?.connectionInfo.getHostName(),
@@ -83,12 +82,29 @@ export class ScriptFetcher {
         });
     }
 
-    static getPageScrpts(page: string): string[] {
+    private static prepareEnviromentCollection(collection: NodeJS.Dict<any>) {
+        const finalObject = Object.assign({
+            "this": {
+                "Terrasoft": collection.Terrasoft,
+                "Ext": collection.Ext
+            }
+        }, collection);
+        return finalObject;
+    }
+
+    private static async loadAllScripts(url: string): Promise<string[]> {
+        const basePage = await this.loadPage(url);
+        const scriptSrcs = await this.getPageScrpts(basePage);
+        const scripts = await this.loadScripts(scriptSrcs);
+        return scripts;
+    }
+
+    private static getPageScrpts(page: string): string[] {
         let scriptTags = page.match(/<script.*?src=".*?".*?<\/script>/g);
-        if (!scriptTags) { 
-            return []; 
+        if (!scriptTags) {
+            return [];
         }
-        
+
         let stringTags = scriptTags.map(x => {
             const src = x.match(/src=".*?"/g);
             if (src) {
@@ -103,7 +119,7 @@ export class ScriptFetcher {
         return stringTags;
     }
 
-    static loadPage(path: string): Promise<string> {
+    private static loadPage(path: string): Promise<string> {
         return new Promise((resolve, reject) => {
             const options: http.RequestOptions = {
                 host: CreatioFileSystemProvider.getInstance().client?.connectionInfo.getHostName(),
