@@ -198,6 +198,10 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                 return changes;
             }).then(changes => {
                 if (changes) {
+                    if (changes.length === 0) {
+                        vscode.window.showInformationMessage("No changes found");
+                        return;
+                    }
                     // Open webview
                     let panel = new PushToSVNPanel(context, this.getMemFolder(resourceUri)!.package!.name, changes[0]);
                     panel.createPanel();

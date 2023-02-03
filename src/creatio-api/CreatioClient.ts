@@ -190,6 +190,14 @@ export class CreatioClient {
 		return response;
 	}
 
+	async getPackageState(packageName: string) {
+		const payload = {
+			"packageName": packageName,
+		};
+		let response = await this.enqueueCommand<Creatio.GetPackageStateResponse>(ReqestType.Commit, payload);
+		return response;
+	}
+
 	/**
 	 * UNUSED. METHODS IN DEVELOPMENT
 	 */
@@ -219,23 +227,7 @@ export class CreatioClient {
 			return err;
 		}
 	}
-	/**
-	 * 
-	 * @param {String} packageName 
-	 * @returns 
-	 */
-	private async getPackageState(packageName: string) {
-		// {"errorInfo":null,"success":true,"hasForeignLock":false,"isOutdated":false} response
-		const postData = {
-			"packageName": packageName,
-		};
-		try {
-			return await this.sendApiRequest('/0/ServiceModel/SourceControlService.svc/GetPackageState', postData);
-		} catch (err: any) {
-			vscode.window.showErrorMessage(err.message);
-			return err;
-		}
-	}
+
 
 	/**
 	  * 

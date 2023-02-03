@@ -52,6 +52,11 @@ export interface CreatioResponse {
 	success: boolean;
 }
 
+export interface GetPackageStateResponse extends CreatioResponse {
+	hasForeignLock: boolean;
+	isOutdated: boolean;
+}
+
 export interface GetPackagesResponse extends CreatioResponse {
 	packages: Array<PackageMetaInfo>;
 }
