@@ -188,6 +188,11 @@
     "configuration": {
       "title": "Creatio Code",
       "properties": {
+        "creatiocode.cachePath": {
+          "type": "string",
+          "default": "",
+          "description": "Override defailt cache path (temp)"
+        },
         "creatiocode.regexEnabled": {
           "type": "boolean",
           "default": false,

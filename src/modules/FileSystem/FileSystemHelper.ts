@@ -145,7 +145,14 @@ export class FileSystemHelper {
     }
 
     getDataFolder() {
-        const p = path.join(this.cacheFolder, "data", this.root);
+        let p: string = "";
+        let override = ConfigurationHelper.getCachePath();
+        if (override && override !== "") {
+            p = path.join(override, this.root);
+        } else {
+            p = path.join(this.cacheFolder, "data", this.root);
+        }
+
         if (!fs.existsSync(p)) {
             fs.mkdirSync(p, { recursive: true });
         }

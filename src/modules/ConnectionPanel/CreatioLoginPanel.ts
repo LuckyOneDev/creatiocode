@@ -7,6 +7,7 @@ import { CreatioFileSystemProvider } from "../FileSystem/CreatioFileSystemProvid
 import { ConnectionInfo } from "../../creatio-api/ConnectionInfo";
 import { CreatioCodeUtils } from "../../common/CreatioCodeUtils";
 import { GenericWebViewPanel } from "../../common/WebView/GenericWebViewPanel";
+import { reloadWorkSpace } from "../../core";
 
 export class CreatioLoginPanel extends GenericWebViewPanel {
     protected webViewId = "creatiocode.creatioLoginPanel";
@@ -29,18 +30,7 @@ export class CreatioLoginPanel extends GenericWebViewPanel {
                     ConfigurationHelper.setLoginData(connectionInfo);
 
                     if (await this.tryCreateConnection()) {
-
-                        await vscode.commands.executeCommand('creatiocode.reloadCreatioWorkspace');
-
-                        let targetUri = vscode.Uri.file(CreatioFileSystemProvider.getInstance().fsHelper.getDataFolder());
-                        let currentUri = vscode.workspace.workspaceFolders?.[0].uri;
-
-                        if (currentUri?.fsPath !== targetUri.fsPath) {
-                            CreatioCodeUtils.createYesNoDialouge(
-                                "Because of VsCode's limitations, you need to reload the workspace to use file search and then login again. Do you want to reload the workspace now?", async () => {
-                                await vscode.commands.executeCommand("vscode.openFolder", targetUri , false);
-                            });
-                        }
+                        reloadWorkSpace();
                         this.dispose();
                     }
                 } catch (error: any) {

@@ -7,6 +7,7 @@ import { CreatioCodeUtils } from '../../common/CreatioCodeUtils';
 import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './CreatioExplorer';
 import { PushToSVNPanel } from '../SVN/PushSVNPanel';
 import { SimplePanel } from '../SimplePanel/simplepanel';
+import { WebviewHelper } from '../../common/WebView/WebViewHelper';
 
 export class File implements vscode.FileStat {
 
@@ -60,7 +61,134 @@ export class Directory implements vscode.FileStat {
 export type Entry = File | Directory;
 
 export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
-    // Singleton    
+
+    folders: Directory[] = [];
+    files: File[] = [];
+    root = new Directory('/');
+
+    client: CreatioClient | null = null;
+    isReloading: boolean = false;
+
+    private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+    private _bufferedEvents: vscode.FileChangeEvent[] = [];
+    private _fireSoonHandle?: NodeJS.Timer;
+
+    //#region FileSystemProvider
+    writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): void | Thenable<void> {
+        let file: any = this.fsHelper.read(uri);
+        // Local save
+        if (file && file.schema) {
+            file.schema.body = content.toString();
+            this.fsHelper.write(file);
+        }
+
+        if (!file && options.create) {
+            if (ConfigurationHelper.isFileTypeEnabled(this.getFileType(uri))) {
+                // Create file
+                // this._fireSoon({ type: vscode.FileChangeType.Created, uri });
+                throw new Error("Not implemented");
+            }
+        }
+
+        if (options.overwrite) {
+            file.schema.body = content.toString();
+            return this.saveFile(uri, file);
+        }
+
+        throw vscode.FileSystemError.FileNotFound();
+    }
+
+    stat(uri: vscode.Uri): vscode.FileStat | Thenable<vscode.FileStat> {
+        if (uri.path === "/") {
+            return this.root;
+        }
+
+        let folder = this.folders.find(x => this.fsHelper.getPath(x).path === uri.path);
+        if (folder) {
+            return folder;
+        }
+
+        let file = this.getMemFile(uri);
+        if (file) {
+            return file;
+        } else {
+            return new Promise<vscode.FileStat>(resolve => {
+                CreatioCodeUtils.createReconnectDialouge(() => {
+                    resolve(this.stat(uri));
+                });
+            });
+        }
+    }
+
+    readFile(uri: vscode.Uri): Uint8Array | Thenable<Uint8Array> {
+        return new Promise((resolve, reject) => {
+            if (uri.path.includes(".vscode")) {
+                resolve(new Uint8Array()); // insert vscode settings here
+                return;
+            }
+
+            vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Loading file"
+            }, async (progress, token) => {
+                this.read(uri).then(file => {
+                    if (file) {
+                        if (file.schema && file.schema.body) {
+                            resolve(Buffer.from(file.schema!.body));
+                        }
+                        progress.report({
+                            increment: 100,
+                            message: "File loaded"
+                        });
+                    } else {
+                        vscode.window.showErrorMessage("File not found");
+                        reject(vscode.FileSystemError.FileNotFound());
+                    }
+                });
+            });
+        });
+    }
+
+    readDirectory(uri: vscode.Uri): [string, vscode.FileType][] {
+        if (uri.path === "/") {
+            return this.folders.map(x => [x.name, vscode.FileType.Directory]);
+        }
+        let content = this.getDirectoryContents(uri);
+        return content.map(x => [x.name, x.type]);
+    }
+
+    createDirectory(uri: vscode.Uri): void {
+        vscode.window.showInformationMessage("Package creation is not supported. Please use web interface.");
+        throw new Error("Not implemented");
+    }
+
+    readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._emitter.event;
+
+    watch(_resource: vscode.Uri): vscode.Disposable {
+        // ignore, fires for all changes...
+        return new vscode.Disposable(() => { });
+    }
+
+    rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void {
+        vscode.window.showInformationMessage("Renaming is not supported");
+        throw new Error("Not implemented");
+    }
+
+    delete(uri: vscode.Uri): void {
+        vscode.window.showInformationMessage("Package deletion is not supported. Please use web interface.");
+        // let file = this.getMemFile(uri);
+        // if (this.client && this.client.isConnected()) {
+        //     if (file) {
+        //         this.client.deleteSchema([file.workSpaceItem.id]);
+        //         this._fireSoon({ type: vscode.FileChangeType.Deleted, uri });
+        //     } else {
+        //         vscode.window.showInformationMessage("Package deletion is not supported. Please use web interface.");
+        //     }
+        // }
+    }
+    //#endregion
+
+    //#region Singleton    
     fsHelper: FileSystemHelper;
     context?: vscode.ExtensionContext;
 
@@ -74,19 +202,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         }
         return CreatioFileSystemProvider.instance;
     }
-
-    createTableString(tableData: Array<Array<string>>): string {
-        var result = "<table>";
-        for (var i = 0; i < tableData.length; i++) {
-            result += "<tr>";
-            for (var j = 0; j < tableData[i].length; j++) {
-                result += "<td>" + tableData[i][j] + "</td>";
-            }
-            result += "</tr>";
-        }
-        result += "</table>";
-        return result;
-    }
+    //#endregion
 
     commit(packageName: string, message: any) {
         vscode.window.withProgress({
@@ -132,7 +248,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                                 padding: 5px;
                             }
                         </style>`;
-                        let panel = new SimplePanel(this.context!, `Build errors ${new Date(Date.now()).toISOString()}`, style + this.createTableString(tableArray));
+                        let panel = new SimplePanel(this.context!, `Build errors ${new Date(Date.now()).toISOString()}`, style + WebviewHelper.createTableString(tableArray));
                         panel.createPanel();
                     });
 
@@ -174,7 +290,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                                 padding: 5px;
                             }
                         </style>`;
-                        let panel = new SimplePanel(this.context!, `Build errors ${new Date(Date.now()).toISOString()}`, style + this.createTableString(tableArray));
+                        let panel = new SimplePanel(this.context!, `Build errors ${new Date(Date.now()).toISOString()}`, style + WebviewHelper.createTableString(tableArray));
                         panel.createPanel();
                     });
 
@@ -359,34 +475,6 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         });
     }
 
-    folders: Directory[] = [];
-    files: File[] = [];
-    root = new Directory('/');
-
-    client: CreatioClient | null = null;
-
-    stat(uri: vscode.Uri): vscode.FileStat | Thenable<vscode.FileStat> {
-        if (uri.path === "/") {
-            return this.root;
-        }
-
-        let folder = this.folders.find(x => this.fsHelper.getPath(x).path === uri.path);
-        if (folder) {
-            return folder;
-        }
-
-        let file = this.getMemFile(uri);
-        if (file) {
-            return file;
-        } else {
-            return new Promise<vscode.FileStat>(resolve => {
-                CreatioCodeUtils.createReconnectDialouge(() => {
-                    resolve(this.stat(uri));
-                });
-            });
-        }
-    }
-
     getDirectoryContents(uri: vscode.Uri): Entry[] {
         const pack = this.folders.find(x => this.fsHelper.getPath(x).path === uri.path);
         if (pack?.package) {
@@ -394,14 +482,6 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         } else {
             throw vscode.FileSystemError.FileNotFound();
         }
-    }
-
-    readDirectory(uri: vscode.Uri): [string, vscode.FileType][] {
-        if (uri.path === "/") {
-            return this.folders.map(x => [x.name, vscode.FileType.Directory]);
-        }
-        let content = this.getDirectoryContents(uri);
-        return content.map(x => [x.name, x.type]);
     }
 
     async getParentFiles(file: File, token: vscode.CancellationToken): Promise<{ files: Array<File>, cancelled: boolean }> {
@@ -508,6 +588,46 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         });
     }
 
+    private async loadFile(uri: vscode.Uri) {
+        let inMemFile = this.files.find(file => this.fsHelper.getPath(file).path === uri.path);
+        if (!inMemFile) {
+            throw vscode.FileSystemError.FileNotFound();
+        }
+        let schema = await this.client!.getSchema(inMemFile.workSpaceItem.uId, inMemFile.workSpaceItem.type);
+        if (schema) {
+            inMemFile.schema = schema;
+            this.fsHelper.write(inMemFile);
+            return inMemFile;
+        } else {
+            throw vscode.FileSystemError.FileNotFound();
+        }
+    }
+
+    private async verifyFile(uri: vscode.Uri) {
+        let localFile = this.fsHelper.read(uri);
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: "Comparing to server version",
+        }, async (progress) => {
+            await this.client!.getSchema(localFile!.workSpaceItem.uId, localFile!.workSpaceItem.type).then(async (schema) => {
+                if (schema) {
+                    if (JSON.stringify(schema.body) !== JSON.stringify(localFile!.schema?.body)) {
+                        CreatioCodeUtils.createYesNoDialouge(`File on server is different from local. Pull ${schema.name} from server?`, () => {
+                            localFile!.schema = schema;
+                            this.changeMemFile(uri, localFile!);
+                        });
+                    }
+                } else {
+                    throw vscode.FileSystemError.FileNotFound();
+                }
+                this._fireSoon({
+                    type: vscode.FileChangeType.Changed,
+                    uri: uri
+                });
+            });
+        });
+    }
+
     /**
      * Reads file from disk or server.
      * Caches file on disk.
@@ -530,75 +650,14 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
 
         if (localFile && localFile.isLoaded() && !silent) {
             if (ConfigurationHelper.isCarefulMode()) {
-                // File is fully loaded. Comparing to server version
-                vscode.window.withProgress({
-                    location: vscode.ProgressLocation.Window,
-                    title: "Comparing to server version",
-                }, async (progress) => {
-                    await this.client!.getSchema(localFile!.workSpaceItem.uId, localFile!.workSpaceItem.type).then(async (schema) => {
-                        if (schema) {
-                            if (JSON.stringify(schema.body) !== JSON.stringify(localFile!.schema?.body)) {
-                                CreatioCodeUtils.createYesNoDialouge(`File on server is different from local. Pull ${schema.name} from server?`, () => {
-                                    localFile!.schema = schema;
-                                    this.changeMemFile(uri, localFile!);
-                                });
-                            }
-                        } else {
-                            throw vscode.FileSystemError.FileNotFound();
-                        }
-                        this._fireSoon({
-                            type: vscode.FileChangeType.Changed,
-                            uri: uri
-                        });
-                    });
-                });
-
-
+                this.verifyFile(uri); // File is fully loaded. Comparing to server version
             }
             return localFile;
         } else {
             // File is not loaded
-            let schema = await this.client!.getSchema(inMemFile.workSpaceItem.uId, inMemFile.workSpaceItem.type);
-            if (schema) {
-                inMemFile.schema = schema;
-                this.fsHelper.write(inMemFile);
-                return inMemFile;
-            } else {
-                throw vscode.FileSystemError.FileNotFound();
-            }
+            return await this.loadFile(uri);
         }
     }
-
-    readFile(uri: vscode.Uri): Uint8Array | Thenable<Uint8Array> {
-        return new Promise((resolve, reject) => {
-            if (uri.path.includes(".vscode")) {
-                resolve(new Uint8Array()); // insert vscode settings here
-                return;
-            }
-
-            vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: "Loading file"
-            }, async (progress, token) => {
-                this.read(uri).then(file => {
-                    if (file) {
-                        if (file.schema && file.schema.body) {
-                            resolve(Buffer.from(file.schema!.body));
-                        }
-                        progress.report({
-                            increment: 100,
-                            message: "File loaded"
-                        });
-                    } else {
-                        vscode.window.showErrorMessage("File not found");
-                        reject(vscode.FileSystemError.FileNotFound());
-                    }
-                });
-            });
-        });
-    }
-
-    public isReloading: boolean = false;
 
     async reload() {
         if (this.isReloading === false) {
@@ -690,7 +749,6 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         }
     }
 
-
     getFileType(uri: vscode.Uri): SchemaType;
     getFileType(fileName: String): SchemaType;
     getFileType(uri: any): SchemaType {
@@ -701,38 +759,13 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             } else {
                 return SchemaType.unknown;
             }
-        }
-        if (uri instanceof String) {
+        } else if (uri instanceof String) {
             ConfigurationHelper.getSchemaTypeByExtension(uri.toString());
         }
         return SchemaType.unknown;
     }
 
-    writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): void | Thenable<void> {
-        let file: any = this.fsHelper.read(uri);
-        // Local save
-        if (file && file.schema) {
-            file.schema.body = content.toString();
-            this.fsHelper.write(file);
-        }
-
-        if (!file && options.create) {
-            if (ConfigurationHelper.isFileTypeEnabled(this.getFileType(uri))) {
-                // Create file
-                // this._fireSoon({ type: vscode.FileChangeType.Created, uri });
-                throw new Error("Not implemented");
-            }
-        }
-
-        if (options.overwrite) {
-            file.schema.body = content.toString();
-            return this.save(uri, file);
-        }
-
-        throw vscode.FileSystemError.FileNotFound();
-    }
-
-    async save(uri: vscode.Uri, file: File): Promise<void> {
+    async saveFile(uri: vscode.Uri, file: File): Promise<void> {
         if (!file.schema) {
             return;
         }
@@ -757,42 +790,6 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                 this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
             }
         });
-    }
-
-    rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void {
-        vscode.window.showInformationMessage("Renaming is not supported");
-        throw new Error("Not implemented");
-    }
-
-    delete(uri: vscode.Uri): void {
-        vscode.window.showInformationMessage("Package deletion is not supported. Please use web interface.");
-        // let file = this.getMemFile(uri);
-        // if (this.client && this.client.isConnected()) {
-        //     if (file) {
-        //         this.client.deleteSchema([file.workSpaceItem.id]);
-        //         this._fireSoon({ type: vscode.FileChangeType.Deleted, uri });
-        //     } else {
-        //         vscode.window.showInformationMessage("Package deletion is not supported. Please use web interface.");
-        //     }
-        // }
-    }
-
-
-
-    createDirectory(uri: vscode.Uri): void {
-        vscode.window.showInformationMessage("Package creation is not supported. Please use web interface.");
-        throw new Error("Not implemented");
-    }
-
-    private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
-    private _bufferedEvents: vscode.FileChangeEvent[] = [];
-    private _fireSoonHandle?: NodeJS.Timer;
-
-    readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._emitter.event;
-
-    watch(_resource: vscode.Uri): vscode.Disposable {
-        // ignore, fires for all changes...
-        return new vscode.Disposable(() => { });
     }
 
     private _fireSoon(...events: vscode.FileChangeEvent[]): void {

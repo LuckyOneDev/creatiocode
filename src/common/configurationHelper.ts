@@ -124,4 +124,8 @@ export class ConfigurationHelper {
     static getRegexCommentPath(): string | undefined {
         return this.config.get("regex");
     }
+
+    static getCachePath() : string | undefined {
+        return this.config.get("cachePath");
+    }
 }

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ConfigurationHelper } from "./common/ConfigurationHelper";
+import { CreatioCodeUtils } from './common/CreatioCodeUtils';
 import { ConnectionInfo } from "./creatio-api/ConnectionInfo";
 import { CreatioClient } from "./creatio-api/CreatioClient";
 import { CreatioLoginPanel } from "./modules/ConnectionPanel/CreatioLoginPanel";
@@ -66,6 +67,16 @@ export async function reloadWorkSpace() {
 			await IntellisenseHelper.init();
 		}
 		vscode.commands.executeCommand('setContext', 'creatio.workspaceLoaded', true);
+	}
+
+	let targetUri = vscode.Uri.file(CreatioFileSystemProvider.getInstance().fsHelper.getDataFolder());
+	let currentUri = vscode.workspace.workspaceFolders?.[0].uri;
+
+	if (currentUri?.fsPath !== targetUri.fsPath) {
+		CreatioCodeUtils.createYesNoDialouge(
+			"Because of VsCode's limitations, you need to reload the workspace to use file search and then login again. Do you want to reload the workspace now?", async () => {
+			await vscode.commands.executeCommand("vscode.openFolder", targetUri , false);
+		});
 	}
 
 	return client !== null;
