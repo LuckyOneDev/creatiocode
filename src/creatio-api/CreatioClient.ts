@@ -194,8 +194,19 @@ export class CreatioClient {
 		const payload = {
 			"packageName": packageName,
 		};
-		let response = await this.enqueueCommand<Creatio.GetPackageStateResponse>(ReqestType.Commit, payload);
+		let response = await this.enqueueCommand<Creatio.GetPackageStateResponse>(ReqestType.GetPackageState, payload);
 		return response;
+	}
+
+	async getZipPackages(packageNames: string[]) {
+		let response = await this.enqueueCommand<Creatio.CreatioResponse>(ReqestType.GetZipPackages, packageNames);
+		return response;
+	}
+
+	async exportSchema(workspaceItems: Creatio.WorkSpaceItem[]): Promise<Creatio.ExportSchema> {
+		let response = await this.sendApiRequest(Endpoints[ReqestType.ExportSchema], workspaceItems);
+		var json = JSON.parse(response.body.replace(/(\r\n|\n|\r)/gm, ""));
+		return json;
 	}
 
 	/**
@@ -240,15 +251,6 @@ export class CreatioClient {
 		};
 		try {
 			return await this.sendApiRequest('/0/ServiceModel/SourceControlService.svc/Update', postData);
-		} catch (err: any) {
-			vscode.window.showErrorMessage(err.message);
-			return err;
-		}
-	}
-
-	private async exportSchema(schemaDatas: Array<any>) {
-		try {
-			return await this.sendApiRequest('/0/ServiceModel/SourceControlService.svc/GetPackageState', schemaDatas);
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err.message);
 			return err;

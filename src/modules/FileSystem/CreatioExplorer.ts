@@ -55,7 +55,7 @@ export class CreatioExplorerDecorationProvider
     let tooltipItems = [];
 
     if (file.workSpaceItem.isChanged) {
-      badge += "●";
+      badge += "*";
       tooltipItems.push("Changed");
     }
 

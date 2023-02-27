@@ -1,6 +1,7 @@
 import { SchemaType } from "./CreatioTypeDefinitions";
 
 /* eslint-disable @typescript-eslint/naming-convention */
+
 export enum ReqestType {
     Commit,
     GetCurrentUserInfo,
@@ -37,7 +38,9 @@ export enum ReqestType {
     GenerateChanges,
     Build,
     Rebuild,
-    ClientUnitSchemaDesignerService
+    ClientUnitSchemaDesignerService,
+    GetZipPackages,
+    ExportSchema
 };
 
 export type EnumDictionary<T extends string | symbol | number, U> = {
@@ -107,4 +110,6 @@ export const Endpoints: EnumDictionary<ReqestType, string> =
     [ReqestType.GenerateChanges]: '/0/ServiceModel/SourceControlService.svc/GenerateChanges',
     [ReqestType.Build]: '/0/ServiceModel/WorkspaceExplorerService.svc/Build',
     [ReqestType.Rebuild]: '/0/ServiceModel/WorkspaceExplorerService.svc/Rebuild',
+    [ReqestType.GetZipPackages] : '/0/ServiceModel/PackageInstallerService.svc/GetZipPackages',
+    [ReqestType.ExportSchema] : '/0/ServiceModel/WorkspaceExplorerService.svc/ExportSchema',
 };

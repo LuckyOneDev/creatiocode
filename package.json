@@ -215,7 +215,7 @@
         },
         "creatiocode.advancedIntellisense": {
           "type": "boolean",
-          "default": "true",
+          "default": "false",
           "description": "Load experimental intellisense (resource heavy)."
         },
         "creatiocode.retryPolicy.attempts": {

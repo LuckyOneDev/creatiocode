@@ -117,6 +117,51 @@ export interface SaveSchemaResponse extends CreatioResponse {
 	success: boolean;
 }
 
+export interface ExportSchema {
+	Caption: string;
+	DenyExtending: boolean;
+	Description: string;
+	ExtendParent: boolean;
+	Js?: string;
+	SourceCode?: string;
+	Less: string;
+	LocalizableValues: Array<{		
+		Culture: string;
+		ImageData:string;
+		Key:string;
+		ResourceType:string;
+		Value:string;
+	}>;
+	ManagerName: string;
+	MetaData: string;
+	Name: string;
+	ParentUId: string;
+	Properties: Array<{
+		Name: string;
+		Value: string;
+	}>;
+	UId: string;
+	Version: string;
+}
+
+// Casts C# server schema to normal client schema. Does not map all properties!
+export function CastSchemaFromeExport(expSchema: ExportSchema) : Schema {
+	var schema: Schema = {
+		name: expSchema.Name,
+		uId: expSchema.UId,
+		body: expSchema.Js ?? expSchema.SourceCode ?? "ERROR! CONTACT DEVELOPER!",
+		dependencies: "",
+		id: "",
+		isReadOnly: false,
+		package: undefined,
+		caption: expSchema.LocalizableValues.filter(x => x.Key === 'Caption').map(x => { return { cultureName: x.Culture, value: x.Value };  }),
+		description: [],
+		localizableStrings: [],
+		extendParent: expSchema.ExtendParent
+	};
+	return schema;
+}
+
 export interface Schema {
 	name: string;
 	uId: string;

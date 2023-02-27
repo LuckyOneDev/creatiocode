@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { CreatioClient } from '../../creatio-api/CreatioClient';
-import { PackageMetaInfo, Schema, WorkSpaceItem, SchemaType } from '../../creatio-api/CreatioTypeDefinitions';
+import { PackageMetaInfo, Schema, WorkSpaceItem, SchemaType, CastSchemaFromeExport as CastSchemaFromExport } from '../../creatio-api/CreatioTypeDefinitions';
 import { ConfigurationHelper } from '../../common/ConfigurationHelper';
 import { FileSystemHelper } from './FileSystemHelper';
 import { CreatioCodeUtils } from '../../common/CreatioCodeUtils';
@@ -593,7 +593,18 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         if (!inMemFile) {
             throw vscode.FileSystemError.FileNotFound();
         }
-        let schema = await this.client!.getSchema(inMemFile.workSpaceItem.uId, inMemFile.workSpaceItem.type);
+
+        let schema: Schema | null;
+        
+        // Try experimental fast load
+        try {
+            let schemaNew = await this.client!.exportSchema([inMemFile.workSpaceItem]);
+            schema = CastSchemaFromExport(schemaNew);
+        } catch (err) {
+            // Fallback to normal slow loading method
+            schema = await this.client!.getSchema(inMemFile.workSpaceItem.uId, inMemFile.workSpaceItem.type);
+        }
+
         if (schema) {
             inMemFile.schema = schema;
             this.fsHelper.write(inMemFile);
