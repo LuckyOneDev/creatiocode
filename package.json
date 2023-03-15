@@ -2,7 +2,7 @@
   "name": "creatiocode",
   "displayName": "CreatioCode",
   "description": "VsCode integration with Creatio web editor",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "repository": "https://github.com/LuckyOneDev/creatiocode",
   "publisher": "LuckyOne",
   "icon": "resources/media/icon.png",
