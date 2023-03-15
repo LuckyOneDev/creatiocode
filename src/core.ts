@@ -6,6 +6,7 @@ import { CreatioClient } from "./creatio-api/CreatioClient";
 import { CreatioLoginPanel } from "./modules/ConnectionPanel/CreatioLoginPanel";
 import { CreatioExplorer } from "./modules/FileSystem/CreatioExplorer";
 import { CreatioFileSystemProvider } from "./modules/FileSystem/CreatioFileSystemProvider";
+import { CreatioCodeContext } from './modules/globalContext';
 import { IntellisenseHelper } from "./modules/Intellisense/IntellisenseHelper";
 
 export async function getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
@@ -57,19 +58,20 @@ export async function reloadWorkSpace() {
 		return false;
 	}
 
-	let fs = CreatioFileSystemProvider.getInstance();
+	CreatioCodeContext.fsHelper.root = connectionInfo.getHostName();
+
 	let client = await tryCreateConnection();
 	if (client) {
-		fs.client = client;
-		await fs.reload();
-		CreatioExplorer.getInstance().refresh();
+		CreatioCodeContext.fsProvider.client = client;
+		await CreatioCodeContext.fsProvider.reload();
+		CreatioCodeContext.explorer.refresh();
 		if (ConfigurationHelper.useAdvancedIntellisense()) {
 			await IntellisenseHelper.init();
 		}
 		vscode.commands.executeCommand('setContext', 'creatio.workspaceLoaded', true);
 	}
 
-	let targetUri = vscode.Uri.file(CreatioFileSystemProvider.getInstance().fsHelper.getDataFolder());
+	let targetUri = vscode.Uri.file(CreatioCodeContext.fsHelper.getDataFolder());
 	let currentUri = vscode.workspace.workspaceFolders?.[0].uri;
 
 	if (currentUri?.fsPath !== targetUri.fsPath) {

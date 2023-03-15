@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { CreatioFileSystemProvider, File } from '../FileSystem/CreatioFileSystemProvider';
 import { WorkSpaceItem } from '../../creatio-api/CreatioTypeDefinitions';
 import { WorkspaceItemViewProvider } from '../../common/WebView/WorkspaceItemViewProvider';
+import { CreatioCodeContext } from '../globalContext';
 
 export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     scripts = ['inheritanceView.js'];
@@ -16,7 +17,7 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     protected onDidReceiveMessage = (message: any) => {
         switch (message.command) {
             case 'openSchema':
-                let uri = CreatioFileSystemProvider.getInstance().getSchemaUri(message.id);
+                let uri = CreatioCodeContext.fsProvider.getSchemaUri(message.id);
                 vscode.workspace.openTextDocument(uri!).then(document => {
                     vscode.window.showTextDocument(document);
                 });
@@ -43,11 +44,11 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
             this.cancelationTokenSource = new vscode.CancellationTokenSource();
 
             // Get parent files and write them to filesystem
-            CreatioFileSystemProvider.getInstance().getParentFiles(this.currentFile, this.cancelationTokenSource.token).then((resp) => {
+            CreatioCodeContext.fsProvider.getParentFiles(this.currentFile, this.cancelationTokenSource.token).then((resp) => {
                 this.files = resp.files;
                 if (!resp.cancelled) {
                     this.reloadWebview();
-                    CreatioFileSystemProvider.getInstance().fsHelper.writeFiles(resp.files);
+                    CreatioCodeContext.fsHelper.writeFiles(resp.files);
                 }
             });
             return `<span class="loader"></span>`;

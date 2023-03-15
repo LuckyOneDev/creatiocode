@@ -1,17 +1,11 @@
 import { RetryOptions } from 'ts-retry';
 import * as vscode from 'vscode';
 import { ConnectionInfo } from '../creatio-api/ConnectionInfo';
-import { SchemaType, WorkSpaceItem } from '../creatio-api/CreatioTypeDefinitions';
+import { SchemaType } from '../creatio-api/CreatioTypeDefinitions';
+import { CreatioCodeContext } from '../modules/globalContext';
 
 export class ConfigurationHelper {
-    static context: vscode.ExtensionContext;
-    static config: vscode.WorkspaceConfiguration;
-
-    static init(context: vscode.ExtensionContext) {
-        ConfigurationHelper.context = context;
-        ConfigurationHelper.config = vscode.workspace.getConfiguration("creatiocode");
-    }
-
+    static config: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration("creatiocode");
     static getSchemaTypeByExtension(path: string): SchemaType {
         let extension = path.split('.').pop();
         switch (extension) {
@@ -87,7 +81,7 @@ export class ConfigurationHelper {
     }
 
     static getLoginData(): ConnectionInfo | undefined {
-        let loginData: ConnectionInfo | undefined = ConfigurationHelper.context.globalState.get("loginData");
+        let loginData: ConnectionInfo | undefined = CreatioCodeContext.extensionContext.globalState.get("loginData");
         if (loginData) {
            return new ConnectionInfo(loginData.url, loginData.login, loginData.password);
         }
@@ -95,7 +89,7 @@ export class ConfigurationHelper {
     }
 
     static setLoginData(loginData: ConnectionInfo) {
-        ConfigurationHelper.context.globalState.update("loginData", loginData);
+        CreatioCodeContext.extensionContext.globalState.update("loginData", loginData);
     }
 
     static isCarefulMode(): boolean {

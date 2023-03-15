@@ -12,8 +12,15 @@ import { IntellisenseVirtualFileSystemProvider } from './modules/Intellisense/In
 import { ObjectHoverProvider } from './modules/Intellisense/ObjectHoverProvider';
 import { createWorkspace, reloadWorkSpace } from './core';
 import { CommentDefinitionProvider } from './modules/CommentIntellisense/CommentDefinitionProvider';
+import { CreatioCodeContext } from './modules/globalContext';
 
 function registerFileSystem(context: vscode.ExtensionContext) {
+	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
+		'creatio',
+		CreatioCodeContext.fsProvider,
+		{ isCaseSensitive: true }
+	));
+
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.createCreatioWorkspace', async () => {
 		createWorkspace(context);
 	}));
@@ -31,64 +38,51 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 
 function registerContextMenus(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.cacheFolder', function (folder: CreatioExplorerItem) {
-		let fs = CreatioFileSystemProvider.getInstance();
-		fs.cacheFolder(folder.resourceUri);
+		CreatioCodeContext.fsProvider.cacheFolder(folder.resourceUri);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.revertSchema', async function (file: CreatioExplorerItem) {
-		let fs = CreatioFileSystemProvider.getInstance();
-		await fs.restoreSchema(file.resourceUri);
+		await CreatioCodeContext.fsProvider.restoreSchema(file.resourceUri);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.generateChanges', async (folder: CreatioExplorerItem) => {
-		let fs = CreatioFileSystemProvider.getInstance();
-		await fs.generateChanges(folder.resourceUri, context);
+		await CreatioCodeContext.fsProvider.generateChanges(folder.resourceUri, context);
 	}));
 
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.clearCache', async function () {
-		let fs = CreatioFileSystemProvider.getInstance();
-		await fs.clearCache();
+		await CreatioCodeContext.fsProvider.clearCache();
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.lockSchema', async (file: CreatioExplorerItem) => {
-		const fs = CreatioFileSystemProvider.getInstance();
-		fs.lockSchema(file.resourceUri);
+		CreatioCodeContext.fsProvider.lockSchema(file.resourceUri);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.unlockSchema', async (file: CreatioExplorerItem) => {
-		const fs = CreatioFileSystemProvider.getInstance();
-		fs.unlockSchema(file.resourceUri);
+		CreatioCodeContext.fsProvider.unlockSchema(file.resourceUri);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.reloadSchema', async (file: CreatioExplorerItem) => {
-		const fs = CreatioFileSystemProvider.getInstance();
-		await fs.reloadFile(file.resourceUri);
+		await CreatioCodeContext.fsProvider.reloadFile(file.resourceUri);
 	}));
 }
 
 export function activate(context: vscode.ExtensionContext) {
-	ConfigurationHelper.init(context);
+	CreatioCodeContext.extensionContext = context;
+
 	registerFileSystem(context);
 	registerContextMenus(context);
 
-	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
-		'creatio',
-		CreatioFileSystemProvider.getInstance(),
-		{ isCaseSensitive: true }
-	));
-
-
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider("creatioFileInfo", new SchemaMetaDataViewProvider(context))
+		vscode.window.registerWebviewViewProvider("creatioFileInfo", CreatioCodeContext.metadataProvider)
 	);
 
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider("creatioInheritance", new InheritanceViewProvider(context))
+		vscode.window.registerWebviewViewProvider("creatioInheritance", CreatioCodeContext.inheritanceProvider)
 	);
 
 	context.subscriptions.push(
-		vscode.window.registerTreeDataProvider("creatiocode.Explorer", CreatioExplorer.getInstance())
+		vscode.window.registerTreeDataProvider("creatiocode.Explorer", CreatioCodeContext.explorer)
 	);
 
 	context.subscriptions.push(
@@ -128,15 +122,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand("creatiocode.build", async () => {
-			const fs = CreatioFileSystemProvider.getInstance();
-			await fs.build();
+			await CreatioCodeContext.fsProvider.build();
 		})
 	);
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand("creatiocode.rebuild", async () => {
-			const fs = CreatioFileSystemProvider.getInstance();
-			await fs.rebuild();
+			await CreatioCodeContext.fsProvider.rebuild();
 		})
 	);
 

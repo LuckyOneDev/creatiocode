@@ -7,10 +7,7 @@ import { ConfigurationHelper } from '../../common/ConfigurationHelper';
 import { isSchema, isWorkspaceItem, Schema, WorkSpaceItem } from '../../creatio-api/CreatioTypeDefinitions';
 
 export class FileSystemHelper {
-    root: string;
-    constructor(root: string) {
-        this.root = root;
-    }
+    root: string = "";
 
     getNameSpace(): vscode.Uri {
         return vscode.Uri.joinPath(vscode.Uri.parse("creatio:/"), this.root);

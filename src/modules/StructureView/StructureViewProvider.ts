@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { CreatioAstNode, CreatioAstStructure } from "./CreatioAst";
 import { CreatioStatusBar } from "../../common/CreatioStatusBar";
 import { CreatioFileSystemProvider } from "../FileSystem/CreatioFileSystemProvider";
+import { CreatioCodeContext } from "../globalContext";
 
 export class SchemaStructureDefinitionProvider implements vscode.DefinitionProvider {
 	// Singleton
@@ -20,7 +21,7 @@ export class SchemaStructureDefinitionProvider implements vscode.DefinitionProvi
 		return new Promise((resolve, reject) => {
 			let fileName = document.getText(document.getWordRangeAtPosition(position));
 			// Temporary fast search
-			let files = CreatioFileSystemProvider.getInstance().getUriByName(fileName);
+			let files = CreatioCodeContext.fsProvider.getUriByName(fileName);
 			if (files.length > 0) {
 				// @ts-ignore
 				resolve(new vscode.Location(files.find(x => x.path !== document.uri.path) || files[0], new vscode.Position(0, 0)));

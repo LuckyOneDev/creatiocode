@@ -219,7 +219,7 @@ export interface WorkSpaceItem {
 	isChanged: boolean;
 	isLocked: boolean;
 	isReadOnly: boolean;
-	modifiedOn: Date;
+	modifiedOn: string;
 	name: string;
 	packageName: string;
 	packageRepository: string | undefined;

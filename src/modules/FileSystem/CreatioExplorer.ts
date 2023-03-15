@@ -1,16 +1,16 @@
 import * as vscode from "vscode";
+import { CreatioCodeContext } from "../globalContext";
 import {
   CreatioFileSystemProvider,
   Directory,
   Entry,
   File,
 } from "./CreatioFileSystemProvider";
-import { FileSystemHelper } from "./FileSystemHelper";
 
 export class CreatioExplorerDecorationProvider
   implements vscode.FileDecorationProvider {
   private constructor() {
-    CreatioFileSystemProvider.getInstance().onDidChangeFile((events: vscode.FileChangeEvent[]) => {
+    CreatioCodeContext.fsProvider.onDidChangeFile((events: vscode.FileChangeEvent[]) => {
       events.forEach(event => {
         if (event.type === vscode.FileChangeType.Changed) {
           this._fireSoon(event.uri);
@@ -32,8 +32,8 @@ export class CreatioExplorerDecorationProvider
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.FileDecoration> {
     if (uri.scheme === "creatio") {
-      const file = CreatioFileSystemProvider.getInstance().getMemFile(uri);
-      const folder = CreatioFileSystemProvider.getInstance().getMemFolder(uri);
+      const file = CreatioCodeContext.fsProvider.getMemFile(uri);
+      const folder = CreatioCodeContext.fsProvider.getMemFolder(uri);
       if (file) {
         return this.buildFileDecoration(file);
       } else if (folder) {
@@ -65,7 +65,7 @@ export class CreatioExplorerDecorationProvider
     }
 
     let color = file.isError ? new vscode.ThemeColor("list.errorForeground") : undefined;
-    
+
     return new vscode.FileDecoration(badge, tooltipItems.join("|"), color);
   }
 
@@ -102,7 +102,7 @@ export class CreatioExplorerItem extends vscode.TreeItem {
         : vscode.TreeItemCollapsibleState.None
     );
     this.resourceUri =
-      CreatioFileSystemProvider.getInstance().fsHelper.getPath(resource);
+      CreatioCodeContext.fsHelper.getPath(resource);
     if (resource instanceof Directory) {
       this.contextValue = "CreatioPackage";
       this.iconPath = resource.package?.isReadOnly
@@ -148,7 +148,7 @@ export class CreatioExplorerItem extends vscode.TreeItem {
   }
 
   getChildren(): vscode.ProviderResult<CreatioExplorerItem[]> {
-    let entries = CreatioFileSystemProvider.getInstance().getDirectoryContents(
+    let entries = CreatioCodeContext.fsProvider.getDirectoryContents(
       this.resourceUri!
     );
     return this.sortEntries(entries).map(
@@ -157,20 +157,8 @@ export class CreatioExplorerItem extends vscode.TreeItem {
   }
 }
 
-export class CreatioExplorer
-  implements vscode.TreeDataProvider<CreatioExplorerItem>
+export class CreatioExplorer implements vscode.TreeDataProvider<CreatioExplorerItem>
 {
-  // Singleton
-  private constructor() { }
-
-  private static instance: CreatioExplorer;
-  public static getInstance(): CreatioExplorer {
-    if (!CreatioExplorer.instance) {
-      CreatioExplorer.instance = new CreatioExplorer();
-    }
-    return CreatioExplorer.instance;
-  }
-
   private _onDidChangeTreeData: vscode.EventEmitter<
     CreatioExplorerItem | undefined | void
   > = new vscode.EventEmitter<CreatioExplorerItem | undefined | void>();
@@ -204,7 +192,7 @@ export class CreatioExplorer
   getChildren(
     element?: CreatioExplorerItem | undefined
   ): vscode.ProviderResult<CreatioExplorerItem[]> {
-    let fs = CreatioFileSystemProvider.getInstance();
+    let fs = CreatioCodeContext.fsProvider;
     if (!element) {
       return this.sortFolders(fs.folders).map(
         (folder) => new CreatioExplorerItem(folder)

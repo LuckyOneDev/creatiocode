@@ -55,7 +55,7 @@ export class CreatioClient {
 
 		if (!HttpHelper.isJSON(response.body)) {
 			console.error(response.body);
-			throw Error("Provided response is not a valid JSON string. See console for details.");
+			throw new Error("Provided response is not a valid JSON string. See console for details.");
 		}
 
 		response.body = JSON.parse(response.body);
@@ -197,8 +197,6 @@ export class CreatioClient {
 		let response = await this.enqueueCommand<Creatio.GetPackageStateResponse>(ReqestType.GetPackageState, payload);
 		return response;
 	}
-
-
 
 	async exportSchema(workspaceItems: Creatio.WorkSpaceItem[]): Promise<Creatio.ExportSchema> {
 		let response = await this.sendApiRequest(Endpoints[ReqestType.ExportSchema], workspaceItems);

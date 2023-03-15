@@ -8,6 +8,7 @@ import { ConnectionInfo } from "../../creatio-api/ConnectionInfo";
 import { CreatioCodeUtils } from "../../common/CreatioCodeUtils";
 import { GenericWebViewPanel } from "../../common/WebView/GenericWebViewPanel";
 import { PackageChangeEntry } from "../../creatio-api/CreatioTypeDefinitions";
+import { CreatioCodeContext } from "../globalContext";
 
 export class PushToSVNPanel extends GenericWebViewPanel {
     changes: PackageChangeEntry;
@@ -25,7 +26,7 @@ export class PushToSVNPanel extends GenericWebViewPanel {
     protected onDidReceiveMessage = async (message: any) => {
         switch (message.command) {
             case 'commit':
-                CreatioFileSystemProvider.getInstance().commit(this.packageName, message.message);
+                CreatioCodeContext.fsProvider.commit(this.packageName, message.message);
                 this.dispose();
                 break;
             case 'getChanges':
