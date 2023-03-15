@@ -182,7 +182,7 @@
     "viewsWelcome": [
       {
         "view": "creatiocode.Explorer",
-        "contents": "Currently not connected to creatio web\n [Open new connection panel](command:creatiocode.createCreatioWorkspace)"
+        "contents": "Currently not connected to creatio web interface\n [Open connection panel](command:creatiocode.createCreatioWorkspace)"
       }
     ],
     "configuration": {

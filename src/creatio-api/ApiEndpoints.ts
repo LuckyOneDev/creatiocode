@@ -2,6 +2,10 @@ import { SchemaType } from "./CreatioTypeDefinitions";
 
 /* eslint-disable @typescript-eslint/naming-convention */
 
+const localizationPath = '/0/ClientApp/assets/i18n/';
+const locRU = 'ru-RU.json';
+const locEN = 'en-US.json';
+
 export enum ReqestType {
     Commit,
     GetCurrentUserInfo,
@@ -40,7 +44,8 @@ export enum ReqestType {
     Rebuild,
     ClientUnitSchemaDesignerService,
     GetZipPackages,
-    ExportSchema
+    ExportSchema,
+    Update
 };
 
 export type EnumDictionary<T extends string | symbol | number, U> = {
@@ -112,4 +117,5 @@ export const Endpoints: EnumDictionary<ReqestType, string> =
     [ReqestType.Rebuild]: '/0/ServiceModel/WorkspaceExplorerService.svc/Rebuild',
     [ReqestType.GetZipPackages] : '/0/ServiceModel/PackageInstallerService.svc/GetZipPackages',
     [ReqestType.ExportSchema] : '/0/ServiceModel/WorkspaceExplorerService.svc/ExportSchema',
+    [ReqestType.Update] : '/0/ServiceModel/SourceControlService.svc/Update'
 };

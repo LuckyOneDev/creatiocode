@@ -207,13 +207,13 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
     commit(packageName: string, message: any) {
         vscode.window.withProgress({
             "location": vscode.ProgressLocation.Notification,
-            "title": "Loading diff"
+            "title": `Performing ${packageName} commit`
         }, async (progress, token) => {
             let response = await this.client?.commit(packageName, message);
             if (response?.success && response?.commitResult === 0) {
-                vscode.window.showInformationMessage(response.commitResultName);
+                vscode.window.showInformationMessage(`Commit ${response.commitResultName}`);
             } else if (response?.commitResult !== 0) {
-                vscode.window.showErrorMessage(response!.commitResultName);
+                vscode.window.showErrorMessage(`Commit ${response!.commitResultName}`);
             }
         });
     }
@@ -488,7 +488,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         let items = [] as Array<File>;
         if (this.client) {
             // Ensure loaded
-            let first = await this.read(this.fsHelper.getPath(file));
+            let first = await this.read(this.fsHelper.getPath(file), true);
             if (first) {
                 items.push(first);
                 // @ts-ignore
@@ -596,6 +596,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
 
         let schema: Schema | null;
         
+        /* Experimental feature try at your own risk
         // Try experimental fast load
         try {
             let schemaNew = await this.client!.exportSchema([inMemFile.workSpaceItem]);
@@ -604,6 +605,9 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             // Fallback to normal slow loading method
             schema = await this.client!.getSchema(inMemFile.workSpaceItem.uId, inMemFile.workSpaceItem.type);
         }
+        */
+
+        schema = await this.client!.getSchema(inMemFile.workSpaceItem.uId, inMemFile.workSpaceItem.type);
 
         if (schema) {
             inMemFile.schema = schema;

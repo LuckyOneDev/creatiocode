@@ -198,10 +198,7 @@ export class CreatioClient {
 		return response;
 	}
 
-	async getZipPackages(packageNames: string[]) {
-		let response = await this.enqueueCommand<Creatio.CreatioResponse>(ReqestType.GetZipPackages, packageNames);
-		return response;
-	}
+
 
 	async exportSchema(workspaceItems: Creatio.WorkSpaceItem[]): Promise<Creatio.ExportSchema> {
 		let response = await this.sendApiRequest(Endpoints[ReqestType.ExportSchema], workspaceItems);
@@ -209,9 +206,21 @@ export class CreatioClient {
 		return json;
 	}
 
+	async sourceControlUpdate(packageName: string) {
+		const payload = {
+			"packageName": packageName,
+		};
+		let response = await this.enqueueCommand<Creatio.GenerateChangesResponse>(ReqestType.Update, payload);
+		return response;
+	}
+
 	/**
 	 * UNUSED. METHODS IN DEVELOPMENT
 	 */
+	private async getZipPackages(packageNames: string[]) {
+		let response = await this.enqueueCommand<Creatio.CreatioResponse>(ReqestType.GetZipPackages, packageNames);
+		return response;
+	}
 
 	private async selectQuery(sql: string): Promise<any> {
 		const payload = {
