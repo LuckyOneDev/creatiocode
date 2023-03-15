@@ -43,7 +43,7 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
             this.cancelationTokenSource = new vscode.CancellationTokenSource();
 
             // Get parent files and write them to filesystem
-            CreatioFileSystemProvider.getInstance().getParentFiles(this.currentFile, this.cancelationTokenSource.token).then((resp) => {
+            CreatioFileSystemProvider.getInstance().getParentFriles(this.currentFile, this.cancelationTokenSource.token).then((resp) => {
                 this.files = resp.files;
                 if (!resp.cancelled) {
                     this.reloadWebview();
