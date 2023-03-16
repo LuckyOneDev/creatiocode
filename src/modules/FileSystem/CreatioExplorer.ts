@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { CreatioCodeContext } from "../globalContext";
+import { CreatioCodeContext } from "../../globalContext";
 import {
   CreatioFileSystemProvider,
   Directory,
@@ -8,15 +8,18 @@ import {
 } from "./CreatioFileSystemProvider";
 
 export class CreatioExplorerDecorationProvider
-  implements vscode.FileDecorationProvider {
+  implements vscode.FileDecorationProvider
+{
   private constructor() {
-    CreatioCodeContext.fsProvider.onDidChangeFile((events: vscode.FileChangeEvent[]) => {
-      events.forEach(event => {
-        if (event.type === vscode.FileChangeType.Changed) {
-          this._fireSoon(event.uri);
-        }
-      });
-    });
+    CreatioCodeContext.fsProvider.onDidChangeFile(
+      (events: vscode.FileChangeEvent[]) => {
+        events.forEach((event) => {
+          if (event.type === vscode.FileChangeType.Changed) {
+            this._fireSoon(event.uri);
+          }
+        });
+      }
+    );
   }
   private static instance: CreatioExplorerDecorationProvider;
   public static getInstance(): CreatioExplorerDecorationProvider {
@@ -64,7 +67,9 @@ export class CreatioExplorerDecorationProvider
       tooltipItems.push("Locked");
     }
 
-    let color = file.isError ? new vscode.ThemeColor("list.errorForeground") : undefined;
+    let color = file.isError
+      ? new vscode.ThemeColor("list.errorForeground")
+      : undefined;
 
     return new vscode.FileDecoration(badge, tooltipItems.join("|"), color);
   }
@@ -101,8 +106,7 @@ export class CreatioExplorerItem extends vscode.TreeItem {
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None
     );
-    this.resourceUri =
-      CreatioCodeContext.fsHelper.getPath(resource);
+    this.resourceUri = CreatioCodeContext.fsHelper.getPath(resource);
     if (resource instanceof Directory) {
       this.contextValue = "CreatioPackage";
       this.iconPath = resource.package?.isReadOnly
@@ -119,7 +123,7 @@ export class CreatioExplorerItem extends vscode.TreeItem {
       };
       this.description =
         resource.workSpaceItem.title &&
-          resource.name.includes(resource.workSpaceItem.title)
+        resource.name.includes(resource.workSpaceItem.title)
           ? undefined
           : resource.workSpaceItem.title;
       this.tooltip = this.description;
@@ -157,8 +161,36 @@ export class CreatioExplorerItem extends vscode.TreeItem {
   }
 }
 
-export class CreatioExplorer implements vscode.TreeDataProvider<CreatioExplorerItem>
+export class CreatioExplorer
+  implements vscode.TreeDataProvider<CreatioExplorerItem>
 {
+  getParent(
+    element: CreatioExplorerItem
+  ): vscode.ProviderResult<CreatioExplorerItem> {
+    let packageUid = CreatioCodeContext.fsProvider.getMemFile(
+      element.resourceUri
+    )?.workSpaceItem.packageUId;
+    var dir = CreatioCodeContext.fsProvider.folders.find((folder) => {
+      folder.package?.uId === packageUid;
+    });
+
+    if (dir) {
+      return new CreatioExplorerItem(dir);
+    } else {
+      return null;
+    }
+  }
+
+  reveal(uri: vscode.Uri) {
+    const treeView = vscode.window.createTreeView("creatiocode.Explorer", {
+      treeDataProvider: CreatioCodeContext.explorer,
+    });
+    let file = CreatioCodeContext.fsProvider.getMemFile(uri);
+    if (file) {
+      treeView.reveal(new CreatioExplorerItem(file), { select: true });
+    }
+  }
+
   private _onDidChangeTreeData: vscode.EventEmitter<
     CreatioExplorerItem | undefined | void
   > = new vscode.EventEmitter<CreatioExplorerItem | undefined | void>();

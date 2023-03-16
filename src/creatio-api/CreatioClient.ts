@@ -10,43 +10,48 @@ import { DesignerReqestType, DesignerServiceEndpoints, DesignerServiceMethods, E
 import { HttpHelper } from '../common/HttpHelper';
 
 export class CreatioClient {
-	constructor(credentials: ConnectionInfo) {
-		this.connectionInfo = credentials;
-	}
-
-	cookies: Array<any> = [];
-	connectionInfo: ConnectionInfo;
+	cookies: Array<string> = [];
+	connectionInfo?: ConnectionInfo;
 
 	private requestQueue = createAsyncQueue<any>();
 
-	isConnected(): boolean {
-		return this.getBPMCSRF() !== null;
+	isConnected() {
+		return this.connectionInfo !== undefined && this.getBPMCSRF() !== null;
 	}
 
-	getBPMCSRF(): string {
-		return this.cookies.find((x: any) => x.startsWith('BPMCSRF')).split(';')[0].split('=')[1];
-	}
-
-	setCookies(cookies: Array<any>) {
-		this.cookies = cookies;
+	private getBPMCSRF(): string {
+		let cookie = this.cookies.find((x: string) => x.startsWith('BPMCSRF'));
+		if (cookie) {
+			return cookie.split(';')[0].split('=')[1];
+		} else {
+			throw new Error("Client not connected");
+		}
 	}
 
 	sendApiRequest(path: string, postData: any = null): Promise<any> {
-		return HttpHelper.Post(this.connectionInfo, path, postData, {
+		if (!this.isConnected()) {
+			throw new Error("Client not connected");
+		}
+
+		return HttpHelper.Post(this.connectionInfo!, path, postData, {
 			'BPMCSRF': this.getBPMCSRF(),
 			'Cookie': this.cookies.join(';'),
 		});
 	}
 
 	async retrySendApiRequest<ResponseType extends Creatio.CreatioResponse>(path: string, postData: any = null): Promise<Creatio.ClientPostResponse<ResponseType>> {
+		if (!this.isConnected()) {
+			throw new Error("Client not connected");
+		}
+
 		if (!this.cookies || this.cookies.length === 0 || this.isConnected() === false) {
-			await this.login();
+			await this.login(this.connectionInfo!);
 		}
 
 		let response = await retryAsync(() => this.sendApiRequest(path, postData), ConfigurationHelper.getRetryPolicy());
 
 		if (response.response.statusCode === 401) {
-			await this.login();
+			await this.login(this.connectionInfo!);
 			return await this.retrySendApiRequest(path, postData);
 		} else if (response.response.statusCode !== 200) {
 			console.error(response.body);
@@ -94,7 +99,11 @@ export class CreatioClient {
 	}
 
 	private async tryLogin(data: any) {
-		let response = await retryAsync(() => HttpHelper.Post(this.connectionInfo, Endpoints[ReqestType.Login], data), ConfigurationHelper.getRetryPolicy());
+		if (!this.connectionInfo) {
+			throw new Error("Client not connected");
+		}
+
+		let response = await retryAsync(() => HttpHelper.Post(this.connectionInfo!, Endpoints[ReqestType.Login], data), ConfigurationHelper.getRetryPolicy());
 
 		if (response.response.statusCode !== 200) {
 			console.error(response.body);
@@ -105,11 +114,12 @@ export class CreatioClient {
 			throw Error(response.body.Message);
 		}
 
-		this.setCookies(response.response.headers['set-cookie']);
+		this.cookies = response.response.headers['set-cookie'];
 		return response;
 	}
 
-	async login(): Promise<boolean> {
+	async login(connectionInfo: ConnectionInfo): Promise<boolean> {
+		this.connectionInfo = connectionInfo;
 		const postData = {
 			"UserName": this.connectionInfo.login,
 			"UserPassword": this.connectionInfo.password

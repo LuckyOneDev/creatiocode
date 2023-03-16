@@ -7,21 +7,12 @@ import { CreatioFileSystemProvider } from "../FileSystem/CreatioFileSystemProvid
 import { ConnectionInfo } from "../../creatio-api/ConnectionInfo";
 import { CreatioCodeUtils } from "../../common/CreatioCodeUtils";
 import { GenericWebViewPanel } from "../../common/WebView/GenericWebViewPanel";
-import { reloadWorkSpace } from "../../core";
+import { CreatioCodeContext } from "../../globalContext";
 
 export class CreatioLoginPanel extends GenericWebViewPanel {
     protected webViewId = "creatiocode.creatioLoginPanel";
     protected title = "Creatio Login";
-    protected async tryCreateConnection(): Promise<CreatioClient | null> {
-        let loginData: ConnectionInfo | undefined = ConfigurationHelper.getLoginData();
-        if (loginData) {
-            loginData = new ConnectionInfo(loginData.url, loginData.login, loginData.password);
-            let client = new CreatioClient(loginData);
-            return await client.login() ? client : null;
-        }
-        return null;
-    }
-
+    
     protected onDidReceiveMessage = async (message: any) => {
         switch (message.command) {
             case 'login':
@@ -29,8 +20,8 @@ export class CreatioLoginPanel extends GenericWebViewPanel {
                     let connectionInfo = new ConnectionInfo(message.connectionInfo.url, message.connectionInfo.login, message.connectionInfo.password);
                     ConfigurationHelper.setLoginData(connectionInfo);
 
-                    if (await this.tryCreateConnection()) {
-                        reloadWorkSpace();
+                    if (await CreatioCodeContext.tryCreateConnection()) {
+                        CreatioCodeContext.reloadWorkSpace();
                         this.dispose();
                     }
                 } catch (error: any) {

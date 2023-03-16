@@ -17,12 +17,13 @@
     "CRM"
   ],
   "activationEvents": [
+    "onStartupFinished",
+    "onFileSystem:creatio",
     "onCommand:creatiocode.createCreatioWorkspace",
     "onCommand:creatiocode.reloadCreatioWorkspace",
     "onCommand:creatiocode.clearCache",
     "onWebviewPanel:creatiocode.loginPage",
-    "onView:creatioExplorer",
-    "onFileSystem:creatio"
+    "onView:creatioExplorer"
   ],
   "main": "./out/extension.js",
   "contributes": {

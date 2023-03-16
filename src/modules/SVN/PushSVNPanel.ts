@@ -8,7 +8,7 @@ import { ConnectionInfo } from "../../creatio-api/ConnectionInfo";
 import { CreatioCodeUtils } from "../../common/CreatioCodeUtils";
 import { GenericWebViewPanel } from "../../common/WebView/GenericWebViewPanel";
 import { PackageChangeEntry } from "../../creatio-api/CreatioTypeDefinitions";
-import { CreatioCodeContext } from "../globalContext";
+import { CreatioCodeContext } from "../../globalContext";
 
 export class PushToSVNPanel extends GenericWebViewPanel {
     changes: PackageChangeEntry;

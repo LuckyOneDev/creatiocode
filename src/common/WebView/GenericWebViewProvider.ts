@@ -1,6 +1,6 @@
 import path from 'path';
 import * as vscode from 'vscode';
-import { CreatioCodeContext } from '../../modules/globalContext';
+import { CreatioCodeContext } from '../../globalContext';
 
 export abstract class GenericWebViewProvider implements vscode.WebviewViewProvider {
   protected webviewView?: vscode.WebviewView;

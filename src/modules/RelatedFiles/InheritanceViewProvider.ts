@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { CreatioFileSystemProvider, File } from '../FileSystem/CreatioFileSystemProvider';
 import { WorkSpaceItem } from '../../creatio-api/CreatioTypeDefinitions';
 import { WorkspaceItemViewProvider } from '../../common/WebView/WorkspaceItemViewProvider';
-import { CreatioCodeContext } from '../globalContext';
+import { CreatioCodeContext } from '../../globalContext';
 
 export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     scripts = ['inheritanceView.js'];

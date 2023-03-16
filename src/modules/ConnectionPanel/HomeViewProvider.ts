@@ -3,21 +3,12 @@ import { CreatioClient } from '../../creatio-api/CreatioClient';
 import { ConfigurationHelper } from '../../common/ConfigurationHelper';
 import { GenericWebViewProvider } from '../../common/WebView/GenericWebViewProvider';
 import { ConnectionInfo } from '../../creatio-api/ConnectionInfo';
+import { CreatioCodeContext } from '../../globalContext';
 
 export class HomeViewProvider extends GenericWebViewProvider {
     scripts = ['homeView.js'];
     styles = ['homeView.css'];
 
-    private async tryCreateConnection(): Promise<CreatioClient | null> {
-        let loginData: ConnectionInfo | undefined = ConfigurationHelper.getLoginData();
-        if (loginData) {
-            loginData = new ConnectionInfo(loginData.url, loginData.login, loginData.password);
-            let client = new CreatioClient(loginData);
-            return await client.login() ? client : null;
-        }
-        return null;
-    }
-    
     onDidReceiveMessage = async (message: any) => {
         switch (message.command) {
             case 'login':
@@ -25,7 +16,7 @@ export class HomeViewProvider extends GenericWebViewProvider {
                     let connectionInfo = new ConnectionInfo(message.connectionInfo.url, message.connectionInfo.login, message.connectionInfo.password);
                     ConfigurationHelper.setLoginData(connectionInfo);
                     
-                    if (await this.tryCreateConnection()) {
+                    if (await CreatioCodeContext.tryCreateConnection()) {
                         vscode.commands.executeCommand('creatiocode.reloadCreatioWorkspace');
                     }     
                 } catch (error: any) {

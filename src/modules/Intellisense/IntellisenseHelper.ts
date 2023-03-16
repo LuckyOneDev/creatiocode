@@ -3,8 +3,8 @@ import { ScriptFetcher } from '../ScriptParsing/ScriptFetcher';
 
 export class IntellisenseHelper {
     public static scriptingEnviromentObject: any;
-    public static init() {
-        vscode.window.withProgress(
+    public static async init() {
+        await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Window,
                 title: "Loading advanced intellisense",

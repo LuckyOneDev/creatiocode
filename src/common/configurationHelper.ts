@@ -2,7 +2,7 @@ import { RetryOptions } from 'ts-retry';
 import * as vscode from 'vscode';
 import { ConnectionInfo } from '../creatio-api/ConnectionInfo';
 import { SchemaType } from '../creatio-api/CreatioTypeDefinitions';
-import { CreatioCodeContext } from '../modules/globalContext';
+import { CreatioCodeContext } from '../globalContext';
 
 export class ConfigurationHelper {
     static config: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration("creatiocode");

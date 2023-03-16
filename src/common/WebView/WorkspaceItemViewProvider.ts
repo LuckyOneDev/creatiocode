@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { CreatioFileSystemProvider, File } from '../../modules/FileSystem/CreatioFileSystemProvider';
 import { WorkSpaceItem } from '../../creatio-api/CreatioTypeDefinitions';
 import { GenericWebViewProvider } from './GenericWebViewProvider';
-import { CreatioCodeContext } from '../../modules/globalContext';
+import { CreatioCodeContext } from '../../globalContext';
 
 export abstract class WorkspaceItemViewProvider extends GenericWebViewProvider {
   currentFile?: File;

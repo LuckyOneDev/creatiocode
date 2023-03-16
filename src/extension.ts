@@ -10,9 +10,8 @@ import { ObjectCompletionItemProvider } from './modules/Intellisense/ObjectCompl
 import { ObjectDefinitionProvider } from './modules/Intellisense/ObjectDefinitionProvider';
 import { IntellisenseVirtualFileSystemProvider } from './modules/Intellisense/IntellisenseVirtualFileSystemProvider';
 import { ObjectHoverProvider } from './modules/Intellisense/ObjectHoverProvider';
-import { createWorkspace, reloadWorkSpace } from './core';
 import { CommentDefinitionProvider } from './modules/CommentIntellisense/CommentDefinitionProvider';
-import { CreatioCodeContext } from './modules/globalContext';
+import { CreatioCodeContext } from './globalContext';
 
 function registerFileSystem(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
@@ -22,11 +21,11 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 	));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.createCreatioWorkspace', async () => {
-		createWorkspace(context);
+		CreatioCodeContext.createWorkspace(context);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.reloadCreatioWorkspace', async () => {
-		reloadWorkSpace();
+		CreatioCodeContext.reloadWorkSpace();
 	}));
 
 	// context.subscriptions.push(vscode.workspace.registerFileSystemProvider(

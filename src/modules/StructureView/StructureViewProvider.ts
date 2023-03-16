@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { CreatioAstNode, CreatioAstStructure } from "./CreatioAst";
 import { CreatioStatusBar } from "../../common/CreatioStatusBar";
 import { CreatioFileSystemProvider } from "../FileSystem/CreatioFileSystemProvider";
-import { CreatioCodeContext } from "../globalContext";
+import { CreatioCodeContext } from "../../globalContext";
 
 export class SchemaStructureDefinitionProvider implements vscode.DefinitionProvider {
 	// Singleton
