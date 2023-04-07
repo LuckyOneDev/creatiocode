@@ -4,63 +4,12 @@ import { PackageMetaInfo, Schema, WorkSpaceItem, SchemaType, CastSchemaFromeExpo
 import { ConfigurationHelper } from '../../common/ConfigurationHelper';
 import { FileSystemHelper } from './FileSystemHelper';
 import { CreatioCodeUtils } from '../../common/CreatioCodeUtils';
-import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './CreatioExplorer';
 import { PushToSVNPanel } from '../SVN/PushSVNPanel';
 import { SimplePanel } from '../SimplePanel/simplepanel';
 import { WebviewHelper } from '../../common/WebView/WebViewHelper';
 import { CreatioCodeContext, ReloadStatus } from '../../globalContext';
 import { wait, waitUntil } from 'ts-retry';
-
-export class File implements vscode.FileStat {
-
-    type: vscode.FileType;
-    ctime: number;
-    mtime: number;
-    size: number;
-    name: string;
-    isError: boolean = false;
-    workSpaceItem: WorkSpaceItem;
-    schema?: Schema;
-
-    permissions?: vscode.FilePermission;
-
-    isLoaded(): boolean {
-        return this.schema !== undefined && this.schema.body !== undefined && this.schema.body !== "";
-    }
-
-    constructor(name: string, schema: WorkSpaceItem, ctime: number = Date.now(), mtime: number = Date.now(), size: number = 0) {
-        this.type = vscode.FileType.File;
-        this.ctime = ctime;
-        this.mtime = mtime;
-        this.size = size;
-        this.name = name;
-        this.workSpaceItem = schema;
-        this.permissions = schema?.isReadOnly ? vscode.FilePermission.Readonly : undefined;
-    }
-}
-
-export class Directory implements vscode.FileStat {
-
-    type: vscode.FileType;
-    ctime: number;
-    mtime: number;
-    size: number;
-    name: string;
-    permissions?: vscode.FilePermission;
-    package: PackageMetaInfo | null;
-
-    constructor(name: string, pack: PackageMetaInfo | null = null) {
-        this.type = vscode.FileType.Directory;
-        this.ctime = Date.now();
-        this.mtime = Date.now();
-        this.size = 0;
-        this.name = name;
-        this.package = pack;
-        this.permissions = pack?.isReadOnly ? vscode.FilePermission.Readonly : undefined;
-    }
-}
-
-export type Entry = File | Directory;
+import { Entry, File, Directory } from './ExplorerItem';
 
 export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
 
@@ -132,13 +81,13 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                     increment: 100,
                     message: "File loaded"
                 });
-                CreatioCodeContext.explorer.reveal(uri);
                 return Buffer.from(file.schema.body);
             } else {
                 throw vscode.FileSystemError.FileNotFound();
             }
         });
-
+        
+        // CreatioCodeContext.explorer.reveal(uri);
         return result;
     }
 
@@ -188,9 +137,9 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         }, async (progress, token) => {
             let response = await CreatioCodeContext.client.commit(packageName, message);
             if (response?.success && response?.commitResult === 0) {
-                vscode.window.showInformationMessage(`Commit ${response.commitResultName}`);
+                vscode.window.showInformationMessage(`${packageName} commit - ${response.commitResultName}`);
             } else if (response?.commitResult !== 0) {
-                vscode.window.showErrorMessage(`Commit ${response!.commitResultName}`);
+                vscode.window.showErrorMessage(`${packageName} commit - ${response!.commitResultName}`);
             }
         });
     }
@@ -423,7 +372,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             CreatioCodeContext.fsHelper.deleteDirectory(CreatioCodeContext.fsHelper.cacheFolder);
             this.files = [];
             this.folders = [];
-            CreatioCodeContext.explorer.refresh();
+            // CreatioCodeContext.explorer.refresh();
         });
     }
 

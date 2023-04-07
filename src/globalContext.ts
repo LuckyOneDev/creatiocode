@@ -3,13 +3,19 @@ import { ConfigurationHelper } from './common/ConfigurationHelper';
 import { CreatioCodeUtils } from './common/CreatioCodeUtils';
 import { ConnectionInfo } from './creatio-api/ConnectionInfo';
 import { CreatioClient } from './creatio-api/CreatioClient';
+import { CommentDefinitionProvider } from './modules/CommentIntellisense/CommentDefinitionProvider';
 import { CreatioLoginPanel } from './modules/ConnectionPanel/CreatioLoginPanel';
 import { CreatioExplorer } from './modules/FileSystem/CreatioExplorer';
 import { CreatioFileSystemProvider } from './modules/FileSystem/CreatioFileSystemProvider';
+import { CreatioExplorerDecorationProvider } from './modules/FileSystem/ExplorerDecorationProvider';
 import { FileSystemHelper } from './modules/FileSystem/FileSystemHelper';
-import { IntellisenseHelper } from './modules/Intellisense/IntellisenseHelper';
+import { IntellisenseVirtualFileSystemProvider } from './modules/Intellisense/IntellisenseVirtualFileSystemProvider';
+import { ObjectCompletionItemProvider } from './modules/Intellisense/ObjectCompletionItemProvider';
+import { ObjectDefinitionProvider } from './modules/Intellisense/ObjectDefinitionProvider';
+import { ObjectHoverProvider } from './modules/Intellisense/ObjectHoverProvider';
 import { SchemaMetaDataViewProvider } from "./modules/Legacy/SchemaMetaDataViewProvider";
 import { InheritanceViewProvider } from './modules/RelatedFiles/InheritanceViewProvider';
+import { SchemaStructureDefinitionProvider } from './modules/StructureView/StructureViewProvider';
 
 export enum ReloadStatus {
     error,
@@ -21,13 +27,42 @@ export enum ReloadStatus {
  * Used to access and register global extension objects.
  */
 export class CreatioCodeContext {
+    static init(context: vscode.ExtensionContext) {
+	    this.extensionContext = context;
+        this.fsProvider = new CreatioFileSystemProvider();
+        this.client = new CreatioClient();
+        this.fsHelper = new FileSystemHelper();
+        this.explorer = new CreatioExplorer();
+        this.decorationProvider = new CreatioExplorerDecorationProvider();
+
+        this.definitionProvider = new ObjectDefinitionProvider();
+        this.hoverProvider = new ObjectHoverProvider();
+        this.commentDefinitionProvider = new CommentDefinitionProvider();
+        this.intellisenseFsProv = new IntellisenseVirtualFileSystemProvider();
+        this.schemaStructureDefinitionProvider = new SchemaStructureDefinitionProvider();
+        this.objectCompletionItemProvider = new ObjectCompletionItemProvider();
+
+        this.metadataProvider = new SchemaMetaDataViewProvider();
+        this.inheritanceProvider = new InheritanceViewProvider();
+    }
+
     static extensionContext: vscode.ExtensionContext;
-    static metadataProvider = new SchemaMetaDataViewProvider();
-    static fsProvider = new CreatioFileSystemProvider();
-    static fsHelper = new FileSystemHelper();
-    static inheritanceProvider = new InheritanceViewProvider();
-    static explorer = new CreatioExplorer();
-    static client = new CreatioClient();
+    
+    static fsProvider: CreatioFileSystemProvider;
+    static client: CreatioClient;
+    static fsHelper: FileSystemHelper;
+    static explorer: CreatioExplorer;
+    static decorationProvider: CreatioExplorerDecorationProvider;
+
+    static definitionProvider: ObjectDefinitionProvider;
+    static hoverProvider: ObjectHoverProvider;
+    static commentDefinitionProvider: CommentDefinitionProvider;
+	static intellisenseFsProv: IntellisenseVirtualFileSystemProvider;
+	static schemaStructureDefinitionProvider : SchemaStructureDefinitionProvider;
+	static objectCompletionItemProvider: ObjectCompletionItemProvider;
+
+    static metadataProvider: SchemaMetaDataViewProvider;
+    static inheritanceProvider: InheritanceViewProvider;
 
     static async getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
         const url = await vscode.window.showInputBox({

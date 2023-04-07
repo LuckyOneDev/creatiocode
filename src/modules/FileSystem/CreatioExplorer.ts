@@ -1,248 +1,82 @@
 import * as vscode from "vscode";
 import { CreatioCodeContext } from "../../globalContext";
-import {
-  CreatioFileSystemProvider,
-  Directory,
-  Entry,
-  File,
-} from "./CreatioFileSystemProvider";
+import { CreatioExplorerItem, Directory } from "./ExplorerItem";
 
-export class CreatioExplorerDecorationProvider
-  implements vscode.FileDecorationProvider
-{
-  private constructor() {
-    CreatioCodeContext.fsProvider.onDidChangeFile(
-      (events: vscode.FileChangeEvent[]) => {
-        events.forEach((event) => {
-          if (event.type === vscode.FileChangeType.Changed) {
-            this._fireSoon(event.uri);
-          }
+export class CreatioExplorer implements vscode.TreeDataProvider<CreatioExplorerItem> {
+    cache: CreatioExplorerItem[] = [];
+
+    reveal(uri: vscode.Uri) {
+        const treeView = vscode.window.createTreeView("creatiocode.Explorer", {
+            treeDataProvider: CreatioCodeContext.explorer,
         });
-      }
-    );
-  }
-  private static instance: CreatioExplorerDecorationProvider;
-  public static getInstance(): CreatioExplorerDecorationProvider {
-    if (!CreatioExplorerDecorationProvider.instance) {
-      CreatioExplorerDecorationProvider.instance =
-        new CreatioExplorerDecorationProvider();
-    }
-    return CreatioExplorerDecorationProvider.instance;
-  }
-
-  provideFileDecoration(
-    uri: vscode.Uri,
-    token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.FileDecoration> {
-    if (uri.scheme === "creatio") {
-      const file = CreatioCodeContext.fsProvider.getMemFile(uri);
-      const folder = CreatioCodeContext.fsProvider.getMemFolder(uri);
-      if (file) {
-        return this.buildFileDecoration(file);
-      } else if (folder) {
-        // No decorations needed yet
-      } else {
-        // Something really bad happened
-        return {
-          badge: "Err",
-          tooltip: "Selected resource is not file nor folder",
-        };
-      }
-    }
-
-    return undefined;
-  }
-
-  buildFileDecoration(file: File): vscode.FileDecoration {
-    let badge = "";
-    let tooltipItems = [];
-
-    if (file.workSpaceItem.isChanged) {
-      badge += "*";
-      tooltipItems.push("Changed");
-    }
-
-    if (file.workSpaceItem.isLocked) {
-      badge += "🔒";
-      tooltipItems.push("Locked");
-    }
-
-    let color = file.isError
-      ? new vscode.ThemeColor("list.errorForeground")
-      : undefined;
-
-    return new vscode.FileDecoration(badge, tooltipItems.join("|"), color);
-  }
-
-  private _emitter = new vscode.EventEmitter<vscode.Uri[]>();
-  private _bufferedEvents: vscode.Uri[] = [];
-  private _fireSoonHandle?: NodeJS.Timer;
-
-  readonly onDidChangeFileDecorations: vscode.Event<vscode.Uri[]> =
-    this._emitter.event;
-
-  _fireSoon(...events: vscode.Uri[]): void {
-    this._bufferedEvents.push(...events);
-
-    if (this._fireSoonHandle) {
-      clearTimeout(this._fireSoonHandle);
-    }
-
-    this._fireSoonHandle = setTimeout(() => {
-      this._emitter.fire(this._bufferedEvents);
-      this._bufferedEvents.length = 0;
-    }, 5);
-  }
-}
-
-export class CreatioExplorerItem extends vscode.TreeItem {
-  children: CreatioExplorerItem[] = [];
-  resourceUri: vscode.Uri;
-
-  constructor(resource: Entry) {
-    super(
-      resource.name,
-      resource instanceof Directory
-        ? vscode.TreeItemCollapsibleState.Collapsed
-        : vscode.TreeItemCollapsibleState.None
-    );
-    this.resourceUri = CreatioCodeContext.fsHelper.getPath(resource);
-    if (resource instanceof Directory) {
-      this.contextValue = "CreatioPackage";
-      this.iconPath = resource.package?.isReadOnly
-        ? new vscode.ThemeIcon("gist-private")
-        : new vscode.ThemeIcon("file-directory");
-      this.description = resource.package?.version;
-      this.tooltip = `Maintainer: ${resource.package?.maintainer}\nDescription: ${resource.package?.description}`;
-    } else {
-      this.contextValue = "CreatioSchema";
-      this.command = {
-        command: "creatiocode.loadFile",
-        title: "Open file",
-        arguments: [this.resourceUri],
-      };
-      this.description =
-        resource.workSpaceItem.title &&
-        resource.name.includes(resource.workSpaceItem.title)
-          ? undefined
-          : resource.workSpaceItem.title;
-      this.tooltip = this.description;
-    }
-  }
-
-  private sortEntries(entries: Entry[]): Entry[] {
-    return entries.sort((a, b) => {
-      if (a instanceof File && b instanceof File) {
-        let fileA = a as File;
-        let fileB = b as File;
-        if (fileA.workSpaceItem.isChanged && !fileB.workSpaceItem.isChanged) {
-          return -1;
-        } else if (
-          fileA.workSpaceItem.isLocked &&
-          !fileB.workSpaceItem.isLocked
-        ) {
-          return -1;
-        } else {
-          return 0;
+        let file = CreatioCodeContext.fsProvider.getMemFile(uri);
+        if (file) {
+            let item = new CreatioExplorerItem(file);
+            treeView.reveal(item, { select: true });
         }
-      } else {
-        return 0;
-      }
-    });
-  }
-
-  getChildren(): vscode.ProviderResult<CreatioExplorerItem[]> {
-    let entries = CreatioCodeContext.fsProvider.getDirectoryContents(
-      this.resourceUri!
-    );
-    return this.sortEntries(entries).map(
-      (entry) => new CreatioExplorerItem(entry)
-    );
-  }
-}
-
-export class CreatioExplorer
-  implements vscode.TreeDataProvider<CreatioExplorerItem>
-{
-  getParent(
-    element: CreatioExplorerItem
-  ): vscode.ProviderResult<CreatioExplorerItem> {
-    let packageUid = CreatioCodeContext.fsProvider.getMemFile(
-      element.resourceUri
-    )?.workSpaceItem.packageUId;
-    var dir = CreatioCodeContext.fsProvider.folders.find((folder) => {
-      folder.package?.uId === packageUid;
-    });
-
-    if (dir) {
-      return new CreatioExplorerItem(dir);
-    } else {
-      return null;
     }
-  }
 
-  reveal(uri: vscode.Uri) {
-    const treeView = vscode.window.createTreeView("creatiocode.Explorer", {
-      treeDataProvider: CreatioCodeContext.explorer,
-    });
-    let file = CreatioCodeContext.fsProvider.getMemFile(uri);
-    if (file) {
-      treeView.reveal(new CreatioExplorerItem(file), { select: true });
+    getParent(
+        element: CreatioExplorerItem
+    ): vscode.ProviderResult<CreatioExplorerItem> {
+        let packageUid = CreatioCodeContext.fsProvider.getMemFile(
+            element.resourceUri
+        )?.workSpaceItem.packageUId;
+        var dir = CreatioCodeContext.fsProvider.folders.find((folder) => {
+            folder.package?.uId === packageUid;
+        });
+
+        if (dir) {
+            return new CreatioExplorerItem(dir);
+        } else {
+            return null;
+        }
     }
-  }
 
-  private _onDidChangeTreeData: vscode.EventEmitter<
-    CreatioExplorerItem | undefined | void
-  > = new vscode.EventEmitter<CreatioExplorerItem | undefined | void>();
-  readonly onDidChangeTreeData: vscode.Event<
-    CreatioExplorerItem | undefined | void
-  > = this._onDidChangeTreeData.event;
-
-  private _onDidStatusUpdate: vscode.EventEmitter<CreatioExplorerItem> =
-    new vscode.EventEmitter<CreatioExplorerItem>();
-  readonly onDidStatusUpdate: vscode.Event<CreatioExplorerItem> =
-    this._onDidStatusUpdate.event;
-
-  getTreeItem(
-    element: CreatioExplorerItem
-  ): vscode.TreeItem | Thenable<vscode.TreeItem> {
-    return element;
-  }
-
-  sortFolders(folders: Directory[]) {
-    return folders.sort((a, b) => {
-      let readonlyA = a.package?.isReadOnly;
-      let readonlyB = b.package?.isReadOnly;
-      if (readonlyA === readonlyB) {
-        return a.name.localeCompare(b.name);
-      } else {
-        return readonlyA ? 1 : -1;
-      }
-    });
-  }
-
-  getChildren(
-    element?: CreatioExplorerItem | undefined
-  ): vscode.ProviderResult<CreatioExplorerItem[]> {
-    let fs = CreatioCodeContext.fsProvider;
-    if (!element) {
-      return this.sortFolders(fs.folders).map(
-        (folder) => new CreatioExplorerItem(folder)
-      );
-    } else {
-      return element.getChildren();
+    getTreeItem(
+        element: CreatioExplorerItem
+    ): vscode.TreeItem | Thenable<vscode.TreeItem> {
+        return element;
     }
-  }
 
-  // getParent?(element: CreatioExplorerItem): vscode.ProviderResult<CreatioExplorerItem> {
-  //     throw new Error('Method not implemented.');
-  // }
+    sortFolders(folders: Directory[]) {
+        return folders.sort((a, b) => {
+            let readonlyA = a.package?.isReadOnly;
+            let readonlyB = b.package?.isReadOnly;
+            if (readonlyA === readonlyB) {
+                return a.name.localeCompare(b.name);
+            } else {
+                return readonlyA ? 1 : -1;
+            }
+        });
+    }
 
-  // resolveTreeItem?(item: vscode.TreeItem, element: CreatioExplorerItem, token: vscode.CancellationToken): vscode.ProviderResult<vscode.TreeItem> {
-  //     throw new Error('Method not implemented.');
-  // }
+    getChildren(
+        element?: CreatioExplorerItem | undefined
+    ): vscode.ProviderResult<CreatioExplorerItem[]> {
+        let fs = CreatioCodeContext.fsProvider;
+        if (!element) {
+            return this.sortFolders(fs.folders).map(
+                (folder) => new CreatioExplorerItem(folder)
+            );
+        } else {
+            return element.getChildren();
+        }
+    }
 
-  public refresh(): void {
-    this._onDidChangeTreeData?.fire();
-  }
+    public refresh(): void {
+        this._onDidChangeTreeData?.fire();
+    }
+
+    private _onDidChangeTreeData: vscode.EventEmitter<
+        CreatioExplorerItem | undefined | void
+    > = new vscode.EventEmitter<CreatioExplorerItem | undefined | void>();
+    readonly onDidChangeTreeData: vscode.Event<
+        CreatioExplorerItem | undefined | void
+    > = this._onDidChangeTreeData.event;
+
+    private _onDidStatusUpdate: vscode.EventEmitter<CreatioExplorerItem> =
+        new vscode.EventEmitter<CreatioExplorerItem>();
+    readonly onDidStatusUpdate: vscode.Event<CreatioExplorerItem> =
+        this._onDidStatusUpdate.event;
 }

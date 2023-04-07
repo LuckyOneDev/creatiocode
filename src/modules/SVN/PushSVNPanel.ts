@@ -14,7 +14,7 @@ export class PushToSVNPanel extends GenericWebViewPanel {
     changes: PackageChangeEntry;
     packageName: string;
 
-    public constructor(context: vscode.ExtensionContext, packageName: string, changes: PackageChangeEntry) {
+    constructor(context: vscode.ExtensionContext, packageName: string, changes: PackageChangeEntry) {
         super(context);
         this.changes = changes;
         this.packageName = packageName;

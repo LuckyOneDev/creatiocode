@@ -2,9 +2,9 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as os from 'os';
 import * as fs from 'fs';
-import { Entry, File } from './CreatioFileSystemProvider';
 import { ConfigurationHelper } from '../../common/ConfigurationHelper';
 import { isSchema, isWorkspaceItem, Schema, WorkSpaceItem } from '../../creatio-api/CreatioTypeDefinitions';
+import { Entry, File, Directory } from './ExplorerItem';
 
 export class FileSystemHelper {
     root: string = "";

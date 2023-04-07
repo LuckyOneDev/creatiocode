@@ -1,20 +1,8 @@
 import * as vscode from "vscode";
 import { CreatioAstNode, CreatioAstStructure } from "./CreatioAst";
-import { CreatioStatusBar } from "../../common/CreatioStatusBar";
-import { CreatioFileSystemProvider } from "../FileSystem/CreatioFileSystemProvider";
 import { CreatioCodeContext } from "../../globalContext";
 
 export class SchemaStructureDefinitionProvider implements vscode.DefinitionProvider {
-	// Singleton
-	private constructor() { }
-	private static instance: SchemaStructureDefinitionProvider;
-	public static getInstance(): SchemaStructureDefinitionProvider {
-		if (!SchemaStructureDefinitionProvider.instance) {
-			SchemaStructureDefinitionProvider.instance = new SchemaStructureDefinitionProvider();
-		}
-		return SchemaStructureDefinitionProvider.instance;
-	}
-
 	// referenceIndex: Map<vscode.TextDocument, Map<vscode.Position, vscode.Uri>> = new Map();
 
 	public provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Thenable<vscode.Location | undefined> {

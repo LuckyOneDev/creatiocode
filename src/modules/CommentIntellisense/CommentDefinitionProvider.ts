@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import { IntellisenseHelper } from '../Intellisense/IntellisenseHelper';
-import open from 'open';
 import { ConfigurationHelper } from '../../common/ConfigurationHelper';
 
 export class CommentDefinitionProvider implements vscode.DocumentLinkProvider {
@@ -26,13 +24,5 @@ export class CommentDefinitionProvider implements vscode.DocumentLinkProvider {
         } else {
             return null;
         }
-    }
-
-    private static instance: CommentDefinitionProvider;
-    public static getInstance(): CommentDefinitionProvider {
-        if (!CommentDefinitionProvider.instance) {
-            CommentDefinitionProvider.instance = new CommentDefinitionProvider();
-        }
-        return CommentDefinitionProvider.instance;
     }
 }

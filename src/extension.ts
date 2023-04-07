@@ -1,17 +1,8 @@
 import * as vscode from 'vscode';
-import { CreatioFileSystemProvider } from './modules/FileSystem/CreatioFileSystemProvider';
-import { CreatioStatusBar } from './common/CreatioStatusBar';
-import { SchemaMetaDataViewProvider } from './modules/Legacy/SchemaMetaDataViewProvider';
-import { InheritanceViewProvider } from './modules/RelatedFiles/InheritanceViewProvider';
 import { SchemaStructureDefinitionProvider, StructureViewProvider } from './modules/StructureView/StructureViewProvider';
-import { ConfigurationHelper } from './common/ConfigurationHelper';
-import { CreatioExplorer, CreatioExplorerDecorationProvider, CreatioExplorerItem } from './modules/FileSystem/CreatioExplorer';
 import { ObjectCompletionItemProvider } from './modules/Intellisense/ObjectCompletionItemProvider';
-import { ObjectDefinitionProvider } from './modules/Intellisense/ObjectDefinitionProvider';
-import { IntellisenseVirtualFileSystemProvider } from './modules/Intellisense/IntellisenseVirtualFileSystemProvider';
-import { ObjectHoverProvider } from './modules/Intellisense/ObjectHoverProvider';
-import { CommentDefinitionProvider } from './modules/CommentIntellisense/CommentDefinitionProvider';
 import { CreatioCodeContext } from './globalContext';
+import { CreatioExplorerItem } from './modules/FileSystem/ExplorerItem';
 
 function registerFileSystem(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
@@ -27,12 +18,6 @@ function registerFileSystem(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.reloadCreatioWorkspace', async () => {
 		CreatioCodeContext.reloadWorkSpace();
 	}));
-
-	// context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
-	// 	'creatio',
-	// 	CreatioFS.getInstance(),
-	// 	{ isCaseSensitive: true }
-	// ));
 }
 
 function registerContextMenus(context: vscode.ExtensionContext) {
@@ -47,7 +32,6 @@ function registerContextMenus(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.generateChanges', async (folder: CreatioExplorerItem) => {
 		await CreatioCodeContext.fsProvider.generateChanges(folder.resourceUri, context);
 	}));
-
 
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.clearCache', async function () {
 		await CreatioCodeContext.fsProvider.clearCache();
@@ -66,9 +50,30 @@ function registerContextMenus(context: vscode.ExtensionContext) {
 	}));
 }
 
-export function activate(context: vscode.ExtensionContext) {
-	CreatioCodeContext.extensionContext = context;
+function registerIntellisense(context: vscode.ExtensionContext) {
+	context.subscriptions.push(
+		vscode.languages.registerDefinitionProvider('javascript', CreatioCodeContext.schemaStructureDefinitionProvider)
+	);
 
+	context.subscriptions.push(
+		vscode.languages.registerCompletionItemProvider('javascript', CreatioCodeContext.objectCompletionItemProvider, '.')
+	);
+
+	context.subscriptions.push(
+		vscode.languages.registerDefinitionProvider('javascript', CreatioCodeContext.definitionProvider)
+	);
+
+	context.subscriptions.push(
+		vscode.languages.registerHoverProvider('javascript', CreatioCodeContext.hoverProvider)
+	);
+
+	context.subscriptions.push(
+		vscode.languages.registerDocumentLinkProvider('javascript', CreatioCodeContext.commentDefinitionProvider)
+	);
+}
+
+export function activate(context: vscode.ExtensionContext) {
+	CreatioCodeContext.init(context);
 	registerFileSystem(context);
 	registerContextMenus(context);
 
@@ -89,7 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.window.registerFileDecorationProvider(CreatioExplorerDecorationProvider.getInstance())
+		vscode.window.registerFileDecorationProvider(CreatioCodeContext.decorationProvider)
 	);
 
 	context.subscriptions.push(
@@ -132,31 +137,12 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.workspace.registerTextDocumentContentProvider("creatio-completion", IntellisenseVirtualFileSystemProvider.getInstance())
+		vscode.workspace.registerTextDocumentContentProvider("creatio-completion", CreatioCodeContext.intellisenseFsProv)
 	);
 
-	context.subscriptions.push(
-		vscode.languages.registerDefinitionProvider('javascript', SchemaStructureDefinitionProvider.getInstance())
-	);
+	registerIntellisense(context);
 
-	context.subscriptions.push(
-		vscode.languages.registerCompletionItemProvider('javascript', ObjectCompletionItemProvider.getInstance(), '.')
-	);
-
-	context.subscriptions.push(
-		vscode.languages.registerDefinitionProvider('javascript', ObjectDefinitionProvider.getInstance())
-	);
-
-	context.subscriptions.push(
-		vscode.languages.registerHoverProvider('javascript', ObjectHoverProvider.getInstance())
-	);
-
-
-	context.subscriptions.push(
-		vscode.languages.registerDocumentLinkProvider('javascript', CommentDefinitionProvider.getInstance())
-	);
-
-	CreatioStatusBar.show('Creatio not initialized');
+	
 }
 
 // This method is called when your extension is deactivated

@@ -3,15 +3,6 @@ import * as vscode from 'vscode';
 import { IntellisenseHelper } from './IntellisenseHelper';
 
 export class ObjectDefinitionProvider implements vscode.DefinitionProvider {
-
-    private static instance: ObjectDefinitionProvider;
-    public static getInstance(): ObjectDefinitionProvider {
-        if (!ObjectDefinitionProvider.instance) {
-            ObjectDefinitionProvider.instance = new ObjectDefinitionProvider();
-        }
-        return ObjectDefinitionProvider.instance;
-    }
-
     provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Definition | vscode.LocationLink[]> {
         const line = document.lineAt(position).text;
         const objectChain = IntellisenseHelper.parseObjectString(line, position.character);

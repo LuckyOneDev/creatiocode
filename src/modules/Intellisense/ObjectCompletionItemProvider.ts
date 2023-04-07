@@ -4,14 +4,6 @@ import { IntellisenseHelper } from './IntellisenseHelper';
 import { ScriptFetcher } from '../ScriptParsing/ScriptFetcher';
 
 export class ObjectCompletionItemProvider implements vscode.CompletionItemProvider<vscode.CompletionItem> {
-    private static instance: ObjectCompletionItemProvider;
-    public static getInstance(): ObjectCompletionItemProvider {
-        if (!ObjectCompletionItemProvider.instance) {
-            ObjectCompletionItemProvider.instance = new ObjectCompletionItemProvider();
-        }
-        return ObjectCompletionItemProvider.instance;
-    }
-
     getParamNames(functionText: string): string[] {
         const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
         const ARGUMENT_NAMES = /([^\s,]+)/g;
@@ -21,7 +13,6 @@ export class ObjectCompletionItemProvider implements vscode.CompletionItemProvid
 
         return result ? result : [];
     }
-
       
     getCompletionItems(objectChain: string[]): vscode.CompletionItem[] {
         const completionItems: vscode.CompletionItem[] = [];
@@ -66,8 +57,6 @@ export class ObjectCompletionItemProvider implements vscode.CompletionItemProvid
         }
         return completionItems;
     }
-
-
 
     provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext):  vscode.CompletionItem[] { 
         const line = document.lineAt(position).text;

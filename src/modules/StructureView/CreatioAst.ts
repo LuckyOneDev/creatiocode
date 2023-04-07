@@ -17,13 +17,13 @@ export class CreatioAstStructure {
     dependencies: babel.StringLiteral[] = [];
 
     diff: babel.ObjectExpression[] = [];
-
     methods: babel.ObjectProperty[] = [];
     messages: babel.ObjectProperty[] = [];
     attributes: babel.ObjectProperty[] = [];
     mixins: babel.ObjectProperty[] = [];
     businessRules: babel.ObjectProperty[] = [];
     details: babel.ObjectProperty[] = [];
+    comments: babel.CommentBlock[] = [];
 
     static getNodeName(source: string, node: Node): string | undefined {
         if (node.start && node.end) {

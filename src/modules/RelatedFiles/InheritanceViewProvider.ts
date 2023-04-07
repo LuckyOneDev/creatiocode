@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CreatioFileSystemProvider, File } from '../FileSystem/CreatioFileSystemProvider';
+import { Entry, File, Directory } from '../../modules/FileSystem/ExplorerItem';
 import { WorkSpaceItem } from '../../creatio-api/CreatioTypeDefinitions';
 import { WorkspaceItemViewProvider } from '../../common/WebView/WorkspaceItemViewProvider';
 import { CreatioCodeContext } from '../../globalContext';

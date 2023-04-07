@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import * as Creatio from './CreatioTypeDefinitions';
-import { CreatioStatusBar } from '../common/CreatioStatusBar';
 import { retryAsync, wait } from 'ts-retry';
 import { createAsyncQueue } from '../common/AsyncQueue';
 import { ConfigurationHelper } from '../common/ConfigurationHelper';
