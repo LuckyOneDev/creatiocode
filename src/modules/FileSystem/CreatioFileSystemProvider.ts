@@ -73,7 +73,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
 
         let result = await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "Loading file"
+            title: `Loading file ${uri.path}`
         }, async (progress, token) => {
             let file = await this.getFile(uri);
             if (file && file.schema && file.schema.body) {
@@ -317,8 +317,8 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         );
     }
 
-    getUriByName(docName: string): vscode.Uri[] {
-        let files = this.files.filter(x => x.name === `${docName}${ConfigurationHelper.getExtension(SchemaType.clientUnit)}`);
+    getUriByName(schemaName: string): vscode.Uri[] {
+        let files = this.files.filter(x => x.name === `${schemaName}${ConfigurationHelper.getExtension(SchemaType.clientUnit)}`);
         return files.map(x => CreatioCodeContext.fsHelper.getPath(x));
     }
 
@@ -423,7 +423,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                 // @ts-ignore
                 while (items[items.length - 1].schema?.parent && token.isCancellationRequested === false) {
                     // @ts-ignore
-                    let newFile = await this.getFile(this.getSchemaUri(items[items.length - 1].schema?.parent.uId));
+                    let newFile = await this.getFile(this.getSchemaUri(items[items.length - 1].schema?.parent.uId), true);
                     if (newFile) {
                         items.push(newFile);
                     } else {
@@ -547,11 +547,19 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         }
     }
 
+    private verificationList: vscode.Uri[] = [];
+    
     private async verifyFile(uri: vscode.Uri) {
+        if (this.verificationList.includes(uri)) {
+            return;
+        } else {
+            this.verificationList.push(uri);
+        }
+
         let localFile = CreatioCodeContext.fsHelper.read(uri);
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
-            title: "Comparing to server version",
+            title: `Comparing ${uri.path} to server version`,
         }, async (progress) => {
             await CreatioCodeContext.client!.getSchema(localFile!.workSpaceItem.uId, localFile!.workSpaceItem.type).then(async (schema) => {
                 if (schema) {
@@ -561,9 +569,12 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                             this.changeMemFile(uri, localFile!);
                         });
                     }
+                    this.verificationList.splice(this.verificationList.indexOf(uri), 1);
                 } else {
+                    this.verificationList.splice(this.verificationList.indexOf(uri), 1);
                     throw vscode.FileSystemError.FileNotFound();
                 }
+                
                 this._fireSoon({
                     type: vscode.FileChangeType.Changed,
                     uri: uri
@@ -579,7 +590,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
      * @param silent 
      * @returns 
      */
-    private async getFile(uri: vscode.Uri, silent: boolean = false): Promise<File> {
+    async getFile(uri: vscode.Uri, silent: boolean = false): Promise<File> {
         if (!CreatioCodeContext.client || !CreatioCodeContext.client.isConnected()) {
             let success = await CreatioCodeContext.reloadWorkSpace();
             if (success) {
@@ -596,8 +607,8 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             // Try to read from disk
             let localFile = CreatioCodeContext.fsHelper.read(uri);
 
-            if (localFile && localFile.isLoaded() && !silent) {
-                if (ConfigurationHelper.isCarefulMode()) {
+            if (localFile && localFile.isLoaded()) {
+                if (ConfigurationHelper.isCarefulMode() && !silent) {
                     this.verifyFile(uri); // File is fully loaded. Comparing to server version
                 }
                 return localFile;

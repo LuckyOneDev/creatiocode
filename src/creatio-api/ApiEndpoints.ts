@@ -79,6 +79,7 @@ export const DesignerServiceEndpoints: EnumDictionary<SchemaType, string> = {
 
 export const Endpoints: EnumDictionary<ReqestType, string> =
 {
+    [ReqestType.Login]: '/ServiceModel/AuthService.svc/Login',
     [ReqestType.Commit]: '/0/ServiceModel/SourceControlService.svc/Commit',
     [ReqestType.GetCurrentUserInfo]: '/0/ServiceModel/UserInfoService.svc/GetCurrentUserInfo',
     [ReqestType.GetApplicationInfo]: '/0/ServiceModel/ApplicationInfoService.svc/GetApplicationInfo',
@@ -89,7 +90,6 @@ export const Endpoints: EnumDictionary<ReqestType, string> =
     [ReqestType.GetSchemaMetaData]: '/0/ServiceModel/SchemaMetaDataService.svc/GetSchemaMetaData',
     [ReqestType.ClientUnitSchemaDesignerService]: '/0/ServiceModel/ClientUnitSchemaDesignerService.svc/',
     [ReqestType.GetAvailableReferenceSchemas]: '/0/ServiceModel/EntitySchemaDesignerService.svc/GetAvailableReferenceSchemas',
-    [ReqestType.Login]: '/ServiceModel/AuthService.svc/Login',
     [ReqestType.SelectQuery]: '/DataService/json/SyncReply/SelectQuery',
     [ReqestType.InsertQuery]: '/DataService/json/SyncReply/InsertQuery',
     [ReqestType.DeleteQuery]: '/DataService/json/SyncReply/DeleteQuery',

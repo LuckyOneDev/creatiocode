@@ -1,9 +1,14 @@
 const vscode = acquireVsCodeApi();
+
+function waitVscMessage(callback) {
+    window.addEventListener('message', (event) => {
+        callback(event.data);
+    });
+}
+
 function postVscMessage(message) {
     return new Promise((resolve, reject) => {    
-        window.addEventListener('message', (event) => {
-            resolve(event.data);
-        });
+        waitVscMessage(resolve);
         setTimeout(() => {
             resolve(null);
         }, 1000);
@@ -35,4 +40,10 @@ window.onload = async function () {
             });
         });
     }
+
+    waitVscMessage((msg) => {
+        if (msg?.command === "changeSelection") {
+            DOMSelector.select(document.getElementById(msg.schemaId));
+        }
+    });
 };

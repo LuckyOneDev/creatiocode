@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { CreatioAstNode, CreatioAstStructure } from "./CreatioAst";
+import { ShemaStructureNode, ShemaAstStructure } from "./CreatioAst";
 import { CreatioCodeContext } from "../../globalContext";
 
 export class SchemaStructureDefinitionProvider implements vscode.DefinitionProvider {
@@ -35,8 +35,8 @@ export class SchemaStructureDefinitionProvider implements vscode.DefinitionProvi
 }
 
 class SchemaStructureTreeItem extends vscode.TreeItem {
-	node: CreatioAstNode;
-	constructor(node: CreatioAstNode) {
+	node: ShemaStructureNode;
+	constructor(node: ShemaStructureNode) {
 		super(node.name, node.children && node?.children?.length > 0
 			? vscode.TreeItemCollapsibleState.Collapsed
 			: vscode.TreeItemCollapsibleState.None);
@@ -78,12 +78,13 @@ export class StructureViewProvider implements vscode.TreeDataProvider<SchemaStru
 		return element;
 	}
 
-	getChildren(element?: SchemaStructureTreeItem | undefined): vscode.ProviderResult<SchemaStructureTreeItem[]> {
+	async getChildren(element?: SchemaStructureTreeItem | undefined): Promise<SchemaStructureTreeItem[] | null | undefined> {
 		if (!element) {
-			let text = vscode.window.activeTextEditor?.document.getText();
-			if (text) {
+			const currentDocument = vscode.window.activeTextEditor?.document;
+			if (currentDocument) {
 				try {
-					let ast = new CreatioAstStructure(text);
+					
+					let ast = await CreatioCodeContext.creatioFileRelationProvider.loadAst(currentDocument.uri);
 					let treeItems = ast.getAsNodes().map(node => new SchemaStructureTreeItem(node));
 					return treeItems;
 				} catch (e) {
@@ -92,6 +93,6 @@ export class StructureViewProvider implements vscode.TreeDataProvider<SchemaStru
 			}
 		} else {
 			return element.getChildren();
-		}
+		}	
 	}
 }

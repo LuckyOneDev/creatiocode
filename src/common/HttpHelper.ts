@@ -1,5 +1,6 @@
 import { ConnectionInfo } from "../creatio-api/ConnectionInfo";
 import * as http from 'http';
+import * as https from 'https';
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export class HttpHelper {
@@ -17,8 +18,8 @@ export class HttpHelper {
                     'Accept': 'application/json, text/plain, */*',
                     'Content-Type': 'application/json',
                     'Content-Length': postData ? Buffer.byteLength(postData) : 0,
-                    'User-Agent': this.UserAgent
-                }
+                    'User-Agent': this.UserAgent,
+                },
             };
 
             options.headers = { ...options.headers, ...additionalHeaders };
@@ -27,7 +28,7 @@ export class HttpHelper {
                 options.port = conInfo.getPort();
             }
 
-            const req = http.request(options, (response) => {
+            const req = https.request(options, (response) => {
                 var str = '';
                 response.on('data', function (chunk) {
                     str += chunk;
@@ -43,7 +44,9 @@ export class HttpHelper {
 
             req.on('error', reject);
 
-            if (postData) { req.write(postData); }
+            if (postData) { 
+                req.write(postData); 
+            }
             req.end();
         });
     }

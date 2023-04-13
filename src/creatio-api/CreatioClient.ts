@@ -97,16 +97,26 @@ export class CreatioClient {
 		}
 	}
 
-	private async tryLogin(data: any) {
+	private async tryLogin(connectionInfo: ConnectionInfo) {
+		const data = {
+			"UserName": connectionInfo.login,
+			"UserPassword": connectionInfo.password
+		};
+
 		if (!this.connectionInfo) {
-			throw new Error("Client not connected");
+			throw new Error("No connection information provided.");
 		}
 
-		let response = await retryAsync(() => HttpHelper.Post(this.connectionInfo!, Endpoints[ReqestType.Login], data), ConfigurationHelper.getRetryPolicy());
+		const retryPolicy = ConfigurationHelper.getRetryPolicy();
+		let response = await retryAsync(async () => {
+			let endpoint = Endpoints[ReqestType.Login];
+			return await HttpHelper.Post(this.connectionInfo!, endpoint, data);
+		}, 
+		retryPolicy);
 
 		if (response.response.statusCode !== 200) {
 			console.error(response.body);
-			throw Error(response.response.statusMessage);
+			throw Error(`Http error: ${response.response.statusMessage}`);
 		}
 
 		if (response.body.Code === 1) {
@@ -119,11 +129,7 @@ export class CreatioClient {
 
 	async login(connectionInfo: ConnectionInfo): Promise<boolean> {
 		this.connectionInfo = connectionInfo;
-		const postData = {
-			"UserName": this.connectionInfo.login,
-			"UserPassword": this.connectionInfo.password
-		};
-		let response = await this.tryLogin(postData);
+		let response = await this.tryLogin(connectionInfo);
 		return response ? true : false;
 	}
 

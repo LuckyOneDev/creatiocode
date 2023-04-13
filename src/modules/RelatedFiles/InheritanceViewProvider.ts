@@ -14,10 +14,23 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
 
     files?: File[];
 
+    constructor() {
+        super();
+        vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+            if (editor?.document) { 
+                const file = await CreatioCodeContext.fsProvider.getFile(editor.document.uri);
+                this.postMessage({
+                    command: "changeSelection",
+                    schemaId: file.workSpaceItem?.uId
+                });
+            }
+        });
+    }
+
     protected onDidReceiveMessage = (message: any) => {
         switch (message.command) {
             case 'openSchema':
-                let uri = CreatioCodeContext.fsProvider.getSchemaUri(message.id);
+                const uri = CreatioCodeContext.fsProvider.getSchemaUri(message.id);
                 vscode.workspace.openTextDocument(uri!).then(document => {
                     vscode.window.showTextDocument(document);
                 });

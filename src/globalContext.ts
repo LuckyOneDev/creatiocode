@@ -14,6 +14,7 @@ import { ObjectCompletionItemProvider } from './modules/Intellisense/ObjectCompl
 import { ObjectDefinitionProvider } from './modules/Intellisense/ObjectDefinitionProvider';
 import { ObjectHoverProvider } from './modules/Intellisense/ObjectHoverProvider';
 import { SchemaMetaDataViewProvider } from "./modules/Legacy/SchemaMetaDataViewProvider";
+import { CreatioFileRelationProvider } from './modules/RelatedFiles/CreatioFileRealtionProvider';
 import { InheritanceViewProvider } from './modules/RelatedFiles/InheritanceViewProvider';
 import { SchemaStructureDefinitionProvider } from './modules/StructureView/StructureViewProvider';
 
@@ -44,6 +45,8 @@ export class CreatioCodeContext {
 
         this.metadataProvider = new SchemaMetaDataViewProvider();
         this.inheritanceProvider = new InheritanceViewProvider();
+
+        this.creatioFileRelationProvider = new CreatioFileRelationProvider();
     }
 
     static extensionContext: vscode.ExtensionContext;
@@ -63,6 +66,8 @@ export class CreatioCodeContext {
 
     static metadataProvider: SchemaMetaDataViewProvider;
     static inheritanceProvider: InheritanceViewProvider;
+
+    static creatioFileRelationProvider: CreatioFileRelationProvider;
 
     static async getInput(oldInput: any): Promise<ConnectionInfo | undefined> {
         const url = await vscode.window.showInputBox({
