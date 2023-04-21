@@ -592,11 +592,22 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
      */
     async getFile(uri: vscode.Uri, silent: boolean = false): Promise<File> {
         if (!CreatioCodeContext.client || !CreatioCodeContext.client.isConnected()) {
-            let success = await CreatioCodeContext.reloadWorkSpace();
-            if (success) {
-                return await this.getFile(uri, silent);
+            let connectionInfo = ConfigurationHelper.getLoginData();
+            var isReconnect = await vscode.window.showInformationMessage(`Reconnect to ${connectionInfo?.getHostName()}`, "Reconnect", "No");
+            
+            if (isReconnect === "Reconnect") {
+                let success = await CreatioCodeContext.reloadWorkSpace();
+                if (success) {
+                    return await this.getFile(uri, silent);
+                } else {
+                    throw new vscode.FileSystemError("Could not connect");
+                }
+            } else if (isReconnect === "No") {
+                CreatioCodeUtils.closeFileIfOpen(uri);
+                throw new vscode.FileSystemError("Unable to open file due to lack of connection");
             } else {
-                throw new vscode.FileSystemError("Could not connect");
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                return await this.getFile(uri, silent);
             }
         } else {
             let inMemFile = this.files.find(file => CreatioCodeContext.fsHelper.getPath(file).path === uri.path);
