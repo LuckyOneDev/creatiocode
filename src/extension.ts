@@ -33,6 +33,12 @@ function registerContextMenus(context: vscode.ExtensionContext) {
 		await CreatioCodeContext.fsProvider.generateChanges(folder.resourceUri, context);
 	}));
 
+	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.pullChanges', async (folder: CreatioExplorerItem) => {
+		await CreatioCodeContext.fsProvider.generateChanges(folder.resourceUri, context);
+	}));
+
+	
+
 	context.subscriptions.push(vscode.commands.registerCommand('creatiocode.clearCache', async function () {
 		await CreatioCodeContext.fsProvider.clearCache();
 	}));

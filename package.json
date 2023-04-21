@@ -53,6 +53,10 @@
         "title": "Push to SVN"
       },
       {
+        "command": "creatiocode.pullChanges",
+        "title": "Pull changes from SVN"
+      },
+      {
         "command": "creatiocode.reloadCreatioWorkspace",
         "title": "Reload Creatio workspace",
         "icon": {
@@ -118,13 +122,18 @@
       "view/item/context": [
         {
           "when": "view == creatiocode.Explorer && viewItem =~ /CreatioPackage/",
-          "command": "creatiocode.cacheFolder",
-          "group": "navigation@2"
+          "command": "creatiocode.pullChanges",
+          "group": "navigation@1"
         },
         {
           "when": "view == creatiocode.Explorer && viewItem =~ /CreatioPackage/",
           "command": "creatiocode.generateChanges",
-          "group": "navigation@1"
+          "group": "navigation@2"
+        },
+        {
+          "when": "view == creatiocode.Explorer && viewItem =~ /CreatioPackage/",
+          "command": "creatiocode.cacheFolder",
+          "group": "navigation@3"
         },
         {
           "when": "view == creatiocode.Explorer && viewItem =~ /CreatioSchema/",

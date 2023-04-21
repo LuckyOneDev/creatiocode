@@ -253,6 +253,32 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             });
     }
 
+    pullChanges(resourceUri: vscode.Uri, context: vscode.ExtensionContext) {
+        vscode.window.withProgress(
+            {
+                "location": vscode.ProgressLocation.Notification,
+                "title": "Pulling from SVN"
+            }, async (progress, token) => {
+                let memDir = this.getMemFolder(resourceUri);
+                if (!memDir || !memDir.package) { return; }
+                let response = await CreatioCodeContext.client?.sourceControlUpdate(memDir.package.name);
+                return response;
+            }).then(response => {
+                if (response?.changes && response.success) {
+                    if (response.changes.length === 0) {
+                        vscode.window.showInformationMessage("No changes found");
+                        return;
+                    }
+                    // Open webview
+                    // let panel = new PushToSVNPanel(context, this.getMemFolder(resourceUri)!.package!.name, changes[0]);
+                    // panel.createPanel();
+                    // TODO: changes view
+                } else {
+                    vscode.window.showErrorMessage(`Changes could not be generated. ${response?.errorInfo?.message.toString() || ''}`);
+                }
+            });
+    }
+
     reloadFile(resourceUri: vscode.Uri) {
         vscode.window.withProgress(
             {
@@ -583,6 +609,9 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         });
     }
 
+
+
+    private reconnects: string[] = [];
     /**
      * Reads file from disk or server.
      * Caches file on disk.
@@ -593,9 +622,14 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
     async getFile(uri: vscode.Uri, silent: boolean = false): Promise<File> {
         if (!CreatioCodeContext.client || !CreatioCodeContext.client.isConnected()) {
             let connectionInfo = ConfigurationHelper.getLoginData();
+            if (this.reconnects.includes(connectionInfo!.getHostName())) {
+                throw "";
+            }
+
             var isReconnect = await vscode.window.showInformationMessage(`Reconnect to ${connectionInfo?.getHostName()}`, "Reconnect", "No");
-            
+            this.reconnects.push(connectionInfo!.getHostName()); 
             if (isReconnect === "Reconnect") {
+                this.reconnects.splice(this.reconnects.indexOf(connectionInfo!.getHostName()), 1);
                 let success = await CreatioCodeContext.reloadWorkSpace();
                 if (success) {
                     return await this.getFile(uri, silent);
@@ -603,6 +637,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
                     throw new vscode.FileSystemError("Could not connect");
                 }
             } else if (isReconnect === "No") {
+                this.reconnects.splice(this.reconnects.indexOf(connectionInfo!.getHostName()), 1);
                 CreatioCodeUtils.closeFileIfOpen(uri);
                 throw new vscode.FileSystemError("Unable to open file due to lack of connection");
             } else {
@@ -758,7 +793,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
         }, async (progress, token) => {
             file.workSpaceItem.modifiedOn = Date.now().toString();
             const response = await CreatioCodeContext.client?.saveSchema(file.schema!, file.workSpaceItem.type);
-            if (!response) {
+            if (!response || response.success === false) {
                 vscode.window.showErrorMessage("Error saving file");
             } else {
                 progress.report({
