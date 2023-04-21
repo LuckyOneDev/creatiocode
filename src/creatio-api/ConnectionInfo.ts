@@ -16,6 +16,10 @@ export class ConnectionInfo {
 		return this.hostURL.hostname;
 	}
 
+	public getProtocol(): string {
+		return this.hostURL.protocol;
+	}
+
 	public getPort(): string {
 		return this.hostURL.port;
 	}

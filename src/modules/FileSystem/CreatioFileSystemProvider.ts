@@ -608,8 +608,10 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             let localFile = CreatioCodeContext.fsHelper.read(uri);
 
             if (localFile && localFile.isLoaded()) {
-                if (ConfigurationHelper.isCarefulMode() && !silent) {
+                const minutes = 15;
+                if (ConfigurationHelper.isCarefulMode() && !silent && Date.now() - inMemFile.lastSynced > minutes * 60 * 1000) {
                     this.verifyFile(uri); // File is fully loaded. Comparing to server version
+                    inMemFile.lastSynced = Date.now();
                 }
                 return localFile;
             } else {
@@ -741,7 +743,7 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
 
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "Saving file"
+            title: `Saving file ${file.name}`
         }, async (progress, token) => {
             file.workSpaceItem.modifiedOn = Date.now().toString();
             const response = await CreatioCodeContext.client?.saveSchema(file.schema!, file.workSpaceItem.type);
@@ -750,8 +752,9 @@ export class CreatioFileSystemProvider implements vscode.FileSystemProvider {
             } else {
                 progress.report({
                     increment: 100,
-                    message: "File saved"
+                    message: `${file.name} saved`
                 });
+                vscode.window.showInformationMessage(`${file.name} saved`);
 
                 let memFile = this.getMemFile(uri);
                 memFile!.mtime = Date.now();

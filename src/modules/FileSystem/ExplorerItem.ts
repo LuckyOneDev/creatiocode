@@ -14,6 +14,7 @@ export class File implements vscode.FileStat {
     schema?: Schema;
 
     permissions?: vscode.FilePermission;
+    lastSynced: number = Date.UTC(0,0);
 
     isLoaded(): boolean {
         return this.schema !== undefined && this.schema.body !== undefined && this.schema.body !== "";

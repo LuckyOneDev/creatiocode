@@ -28,7 +28,9 @@ export class HttpHelper {
                 options.port = conInfo.getPort();
             }
 
-            const req = https.request(options, (response) => {
+            let versionedProtocol = conInfo.getProtocol() === 'http:' ? http : https;
+
+            const req = versionedProtocol.request(options, (response) => {
                 var str = '';
                 response.on('data', function (chunk) {
                     str += chunk;
