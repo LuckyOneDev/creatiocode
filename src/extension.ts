@@ -6,7 +6,7 @@ import { CreatioExplorerItem } from './modules/FileSystem/ExplorerItem';
 
 function registerFileSystem(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(
-		'creatio',
+		CreatioCodeContext.fileSystemName,
 		CreatioCodeContext.fsProvider,
 		{ isCaseSensitive: true }
 	));

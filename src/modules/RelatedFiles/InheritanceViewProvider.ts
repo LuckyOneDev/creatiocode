@@ -17,7 +17,7 @@ export class InheritanceViewProvider extends WorkspaceItemViewProvider {
     constructor() {
         super();
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-            if (editor?.document) { 
+            if (editor?.document.uri.authority === CreatioCodeContext.fileSystemName) { 
                 const file = await CreatioCodeContext.fsProvider.getFile(editor.document.uri);
                 this.postMessage({
                     command: "changeSelection",

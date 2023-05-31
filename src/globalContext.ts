@@ -49,6 +49,7 @@ export class CreatioCodeContext {
         this.creatioFileRelationProvider = new CreatioFileRelationProvider();
     }
 
+    static fileSystemName: string = "creatio";
     static extensionContext: vscode.ExtensionContext;
     
     static fsProvider: CreatioFileSystemProvider;

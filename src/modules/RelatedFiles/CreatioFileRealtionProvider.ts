@@ -38,16 +38,18 @@ export class UriDictionary<T> {
 export class CreatioFileRelationProvider {
     constructor() {
         vscode.workspace.onDidOpenTextDocument((doc) => {
-            vscode.window.withProgress({
-                "location": vscode.ProgressLocation.Window,
-                "title": `Loading ast`
-            }, async (progress, token) => {
-                await this.loadAst(doc.uri);
-                progress.report({ 
-                    increment: 100,
-                    message: "loaded"
+            if (doc.uri.authority === CreatioCodeContext.fileSystemName) {
+                vscode.window.withProgress({
+                    "location": vscode.ProgressLocation.Window,
+                    "title": `Loading ast`
+                }, async (progress, token) => {
+                    await this.loadAst(doc.uri);
+                    progress.report({ 
+                        increment: 100,
+                        message: "loaded"
+                    });
                 });
-            });
+            }
         });
     }
 

@@ -18,6 +18,12 @@ export class CreatioLoginPanel extends GenericWebViewPanel {
             case 'login':
                 try {
                     let connectionInfo = new ConnectionInfo(message.connectionInfo.url, message.connectionInfo.login, message.connectionInfo.password);
+                    if (connectionInfo.getHostName() === '') {
+                        vscode.window.showErrorMessage("Unable to parse url. Example: http://localhost:81");
+                    } else if (connectionInfo.getProtocol() !== 'http' || connectionInfo.getProtocol() !== 'https') {
+                        vscode.window.showErrorMessage("Unsupported protocol");
+                    }
+
                     ConfigurationHelper.setLoginData(connectionInfo);
 
                     if (await CreatioCodeContext.tryCreateConnection()) {
